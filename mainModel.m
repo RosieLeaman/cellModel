@@ -1,8 +1,24 @@
 function mainModel
 
+% model settings
+
+insRateProtein = 0;
+insRateLPS = 0;
+
+time = 0;
+dt = 0.01;
+maxTime = 10;
+
 % set up the model
 
+BAMlocs = [];
+LptDlocs = [];
+proteinVertices = [];
+lpsVertices = [];
+
+
 % while time is less than max time
+while time < maxTime
 
     % see if we need to insert a new BAM
     
@@ -15,14 +31,12 @@ function mainModel
         % if yes pick a BAM
         
         % add new material (lipid)
-        
-        
+              
     % move polygon vertices
     
     
     % move insertion points
-    
-    
+     
     
     % resolve boundary issues
     
@@ -32,5 +46,7 @@ function mainModel
     
     % increase time
     
+    time = time + dt;
     
+end
     
