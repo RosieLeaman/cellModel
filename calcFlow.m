@@ -25,12 +25,15 @@ flow = [0,0];
 
 % calculate flow due to proteins
 
-for i=1:numel(insertionLocsProtein)
-    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsProtein(i),insRateProtein,R);
+for i=1:size(insertionLocsProtein,1)
+    disp(['calc for protein',num2str(i)])
+    insertionLocsProtein(i)
+    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,R);
 end
 
 % calculate flow due to LPS
 
-for i=1:numel(insertionLocsLPS)
-    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsLPS(i),insRateLPS,R);
+for i=1:size(insertionLocsLPS,1)
+    disp('calc for LPS')
+    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),insRateLPS,R);
 end

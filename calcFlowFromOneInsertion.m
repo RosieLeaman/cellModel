@@ -1,6 +1,6 @@
 % this function will calculate the flow field at a point pos caused by the
 % flow from an insertion point at point insertion. The formula is given in
-% Ursell et. al. in the section ?Computational modeling of OM 
+% Ursell et. al. in the section Computational modeling of OM 
 % insertion recapitulates puncta behavior (equation for j(x,x_i))
 
 % INPUTS:
@@ -14,6 +14,9 @@
 % pos
 
 function flow = calcFlowFromOneInsertion(pos,insertion,insRate,R) 
+
+disp('calculating')
+disp(insertion)
 
 flow = [0,0];
 
