@@ -15,9 +15,6 @@
 
 function flow = calcFlowFromOneInsertion(pos,insertion,insRate,R) 
 
-disp('calculating')
-disp(insertion)
-
 flow = [0,0];
 
 for m = -10:10
