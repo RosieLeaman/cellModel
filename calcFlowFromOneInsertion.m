@@ -13,13 +13,13 @@
 % flow; 1x2 row vector, flow felt in the x and y directions at the point
 % pos
 
-function flow = calcFlowFromOneInsertion(pos,insertion,insRate,R) 
+function flow = calcFlowFromOneInsertion(pos,insertion,insRate,membraneCircumference) 
 
 flow = [0,0];
 
 for m = -10:10
     
-    sm = [0,2*pi*m*R];
+    sm = [0,m*membraneCircumference];
     
     vectorToInsertion = pos - (insertion + sm);
     

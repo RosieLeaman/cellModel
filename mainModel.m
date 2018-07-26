@@ -4,7 +4,7 @@ function mainModel
 
 polygonSides = 100;
 
-membraneRadius = 1;
+membraneCircumference = 2*pi*1;
 
 insRateProtein = 1;
 insRateLPS = 1;
@@ -37,7 +37,7 @@ figure;hold on;
 % for poly = 1:size(proteinVertices,3)
 %     plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'o')
 % end
-xlim([0,4*pi*membraneRadius]);ylim([0,2*pi*membraneRadius])
+xlim([0,2*membraneCircumference]);ylim([0,membraneCircumference])
 plot(BAMlocs(:,1),BAMlocs(:,2),'xk','linewidth',2)
 
 % while time is less than max time
@@ -58,14 +58,14 @@ while time < maxTime
     % this should probably involve membrane area here somewhere
     %if time >= 0.05 && time < 0.06
     %if 1 < 3
-    if newBamRandom < insRateBAM*dt*8*pi*pi*membraneRadius*membraneRadius
+    if newBamRandom < insRateBAM*dt*2*membraneCircumference*membraneCircumference
         disp(time)
         % if yes add a BAM to a new randomly chosen location
         
         %newBAMloc = [3.2,3];
         newBAMloc = rand(1,2); % gives uniform between 0,1
-        newBAMloc(1) = newBAMloc(1)*4*pi*membraneRadius;
-        newBAMloc(2) = newBAMloc(2)*2*pi*membraneRadius;
+        newBAMloc(1) = newBAMloc(1)*2*membraneCircumference;
+        newBAMloc(2) = newBAMloc(2)*membraneCircumference;
         
         newBAMIndex = size(BAMlocs,1) + 1;
         
@@ -86,9 +86,9 @@ while time < maxTime
     for poly = 1:size(proteinVertices,3)
         for j=1:size(proteinVertices(:,:,1),1)
 
-            flow = calcFlow(proteinVertices(j,:,poly),BAMlocs,insRateProtein,[],insRateLPS,membraneRadius);
+            flow = calcFlow(proteinVertices(j,:,poly),BAMlocs,insRateProtein,[],insRateLPS,membraneCircumference);
             
-            newPos = findNewVertexPosition(proteinVertices(j,:,poly),flow,dt);
+            newPos = findNewVertexPosition(proteinVertices(j,:,poly),flow,dt,membraneCircumference);
             
             proteinVertices(j,:,poly) = newPos;
         end
@@ -110,9 +110,9 @@ while time < maxTime
         tempBAMlocs = BAMlocs;
         tempBAMlocs(j,:) = [];
         
-        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,[],insRateLPS,membraneRadius);
+        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,[],insRateLPS,membraneCircumference);
             
-        newPos = findNewVertexPosition(BAMlocs(j,:),flow,dt);
+        newPos = findNewVertexPosition(BAMlocs(j,:),flow,dt,membraneCircumference);
             
         BAMlocs(j,:) = newPos;
         
@@ -156,7 +156,5 @@ for poly = 1:size(proteinVertices,3)
     plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'x-')
 end
 
-%fill(proteinVertices(:,1,1),proteinVertices(:,2,1));
 plot(BAMlocs(:,1),BAMlocs(:,2),'x','linewidth',2)
-% legend('Initial','Step 1','Step 2','Step 3','Step 4','Step 5')
-    
+   

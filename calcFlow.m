@@ -19,18 +19,18 @@
 % flow; 1x2 row vector which is the flow felt at pos caused by the
 % insertions
 
-function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,R)
+function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference)
 
 flow = [0,0];
 
 % calculate flow due to proteins
 
 for i=1:size(insertionLocsProtein,1)
-    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,R);
+    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,membraneCircumference);
 end
 
 % calculate flow due to LPS
 
 for i=1:size(insertionLocsLPS,1)
-    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),insRateLPS,R);
+    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),insRateLPS,membraneCircumference);
 end
