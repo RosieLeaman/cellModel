@@ -55,7 +55,6 @@ while time < maxTime
     
     newBamRandom = rand(1);
     
-    % this should probably involve membrane area here somewhere
     %if time >= 0.05 && time < 0.06
     %if 1 < 3
     if newBamRandom < insRateBAM*dt*2*membraneCircumference*membraneCircumference
@@ -94,15 +93,6 @@ while time < maxTime
         end
     end
     
-    % plot each time step
-    %disp('plotting')
-%     for poly = 1:1
-%         plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'o')
-%     end
-
-    %fill(proteinVertices(:,1,1),proteinVertices(:,2,1),'r')
-    
-    
     % move insertion points (protein)
     
     for j = 1:size(BAMlocs,1)
@@ -132,7 +122,7 @@ while time < maxTime
 
             plot(newBAMlocs(j,1),newBAMlocs(j,2),'xk','linewidth',2)
             
-            index = size(BAMlocs,1)-j+1;
+            %index = size(BAMlocs,1)-j+1;
             
             %plot(proteinVertices(:,1,index),proteinVertices(:,2,index),'ok')
         end
@@ -153,7 +143,7 @@ while time < maxTime
 end
 
 for poly = 1:size(proteinVertices,3)
-    plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'x-')
+    plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'x')
 end
 
 plot(BAMlocs(:,1),BAMlocs(:,2),'x','linewidth',2)
