@@ -4,16 +4,17 @@ function mainModel
 
 polygonSides = 100;
 
-membraneCircumference = 2*pi*1;
+membraneCircumference = pi; % um
+currentMaxLen = 2; %um 
 
-insRateProtein = 1;
+insRateProtein = pi*0.0024*0.0024; %um^2/s
 insRateLPS = 1;
 
-insRateBAM = 0.05;
+insRateBAM = 7/60; %s^-1
 
 time = 0;
-dt = 0.01;
-maxTime = 2;
+dt = 0.01; %s
+maxTime = 18;
 
 materialAddedNewInsertion = insRateProtein*dt;
 
@@ -37,8 +38,11 @@ figure;hold on;
 % for poly = 1:size(proteinVertices,3)
 %     plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'o')
 % end
-xlim([0,2*membraneCircumference]);ylim([0,membraneCircumference])
+
+%xlim([-currentMaxLen,currentMaxLen]);ylim([0,membraneCircumference])
 plot(BAMlocs(:,1),BAMlocs(:,2),'xk','linewidth',2)
+plot([currentMaxLen,currentMaxLen],[0,membraneCircumference],'k-')
+plot([-currentMaxLen,-currentMaxLen],[0,membraneCircumference],'k-')
 
 % while time is less than max time
 while time < maxTime
@@ -62,8 +66,11 @@ while time < maxTime
         % if yes add a BAM to a new randomly chosen location
         
         %newBAMloc = [3.2,3];
-        newBAMloc = rand(1,2); % gives uniform between 0,1
-        newBAMloc(1) = newBAMloc(1)*2*membraneCircumference;
+        newBAMloc = rand(1,2); % gives two uniform random numbers
+        % adjust the x one to be uniform between -currentMaxLen and
+        % currentMaxLen
+        % and y one to be uniform between 0 and membraneCircumference
+        newBAMloc(1) = newBAMloc(1)*2*currentMaxLen-currentMaxLen;
         newBAMloc(2) = newBAMloc(2)*membraneCircumference;
         
         newBAMIndex = size(BAMlocs,1) + 1;
@@ -129,7 +136,6 @@ while time < maxTime
     end
         
     
-    
     % resolve boundary issues
     
     
@@ -146,5 +152,11 @@ for poly = 1:size(proteinVertices,3)
     plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'x')
 end
 
+plot(BAMlocs(:,1),BAMlocs(:,2),'x','linewidth',2)
+
+figure; hold on;
+for poly = 1:size(proteinVertices,3)
+    fill(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'b')
+end
 plot(BAMlocs(:,1),BAMlocs(:,2),'x','linewidth',2)
    
