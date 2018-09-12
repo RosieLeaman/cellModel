@@ -2,22 +2,26 @@ function mainModel
 
 % model settings
 
-polygonSides = 100;
+polygonSides = 200;
 
 membraneCircumference = pi; % um
-currentMaxLen = 2; %um 
+currentMaxLen = 2; %um
+initialArea = membraneCircumference*currentMaxLen*2; % um^2
 
 insRateProtein = 0.5; %um^2/s; estimate pi*0.0024*0.0024
 insRateLPS = 0.5; % per LptD
 
 insRateBAM = 0.1; %s^-1; estimate 7/60
-insRateLptD = 0.005; %s^-1; per BAM
+insRateLptD = 0.005; % per BAM
+
+growthRate = insRateLPS*insRateLptD*insRateBAM + insRateProtein*insRateBAM; % units I think um^2/s^2
+sqrtGrowthRate = sqrt(growthRate); % units I think um/s
 
 BAMsize = 0.01;
 
 time = 0;
 dt = 0.01; %s
-maxTime = 2;
+maxTime = 4;
 
 materialAddedNewInsertion = insRateProtein*dt;
 
@@ -38,11 +42,7 @@ end
 
 % make a pretty plot
 figure;hold on;
-% for poly = 1:size(proteinVertices,3)
-%     plot(proteinVertices(:,1,poly),proteinVertices(:,2,poly),'o')
-% end
 
-%xlim([-currentMaxLen,currentMaxLen]);ylim([0,membraneCircumference])
 plot(BAMlocs(:,1),BAMlocs(:,2),'xk','linewidth',2)
 plot([currentMaxLen,currentMaxLen],[0,membraneCircumference],'k-')
 plot([-currentMaxLen,-currentMaxLen],[0,membraneCircumference],'k-')
@@ -62,9 +62,11 @@ while time < maxTime
     
     newBamRandom = rand(1);
     
-    %if time >= 0.05 && time < 0.06
-    %if 1 < 3
-    if newBamRandom < insRateBAM*dt*2*membraneCircumference*membraneCircumference
+    % work out current area
+    
+    currentArea = initialArea*exp(sqrtGrowthRate*time);
+    
+    if newBamRandom < insRateBAM*dt*currentArea
         disp(time)
         % if yes add a BAM to a new randomly chosen location
         
