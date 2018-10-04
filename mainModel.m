@@ -3,7 +3,7 @@ function mainModel(settings)
 % model settings, set here if nargin < 1 (no inputs passed)
 
 if nargin < 1
-    settings.polygonSides = 200;
+    settings.polygonSides = 100;
 
     settings.membraneCircumference = pi; % um
     settings.currentMaxLen = 2; %um
@@ -21,10 +21,11 @@ if nargin < 1
     settings.BAMsize = 0.01;
 
     settings.time = 0;
-    settings.dt = 0.001; %s
+    settings.dt = 0.01; %s
     settings.maxTime = 2;
 
-    settings.materialAddedNewInsertion = settings.insRateProtein*settings.dt;
+    settings.proteinAddedNewInsertion = settings.insRateProtein*settings.dt;
+    settings.LPSAddedNewInsertion = settings.insRateLPS*settings.dt;
 end
 
 polygonSides = settings.polygonSides;
@@ -48,7 +49,8 @@ time = settings.time;
 dt = settings.dt; %s
 maxTime = settings.maxTime;
 
-materialAddedNewInsertion = settings.materialAddedNewInsertion;
+proteinAddedNewInsertion = settings.proteinAddedNewInsertion;
+LPSAddedNewInsertion = settings.LPSAddedNewInsertion;
 
 % set up the model (as a struct)
 
@@ -62,7 +64,7 @@ model.settings = settings;
 
 % for all existing insertions add new protein material
 for i=1:size(model.BAMlocs,1)
-    vertices = findVerticesNewMaterial(model.BAMlocs(i,:),polygonSides,materialAddedNewInsertion);
+    vertices = findVerticesNewMaterial(model.BAMlocs(i,:),polygonSides,proteinAddedNewInsertion);
     model.proteinVertices(:,:,i) = vertices;
 end
 
@@ -205,7 +207,7 @@ while time < maxTime
     if ~isempty(newBAMlocs)
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newBAMlocs,1)
-            vertices = findVerticesNewMaterial(newBAMlocs(j,:),polygonSides,materialAddedNewInsertion);
+            vertices = findVerticesNewMaterial(newBAMlocs(j,:),polygonSides,proteinAddedNewInsertion);
             model.proteinVertices(:,:,newBAMIndex) = vertices;
 
             plot(newBAMlocs(j,1),newBAMlocs(j,2),'xk','linewidth',2)
@@ -218,7 +220,7 @@ while time < maxTime
     if ~isempty(newLptDlocs)
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newLptDlocs,1)
-            vertices = findVerticesNewMaterial(newLptDlocs(j,:),polygonSides,materialAddedNewInsertion);
+            vertices = findVerticesNewMaterial(newLptDlocs(j,:),polygonSides,LPSAddedNewInsertion);
             
             newLptDIndex = size(model.lpsVertices,3) + 1;
             
