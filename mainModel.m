@@ -9,8 +9,8 @@ if nargin < 1
     settings.currentMaxLen = 2; %um
     settings.initialArea = settings.membraneCircumference*settings.currentMaxLen*2; % um^2
 
-    settings.insRateProtein = 0.5; %um^2/s; estimate pi*0.0024*0.0024
-    settings.insRateLPS = 0.5; % per LptD
+    settings.insRateProtein = 0.1; %um^2/s; estimate pi*0.0024*0.0024
+    settings.insRateLPS = 1; % per LptD
 
     settings.insRateBAM = 0.5; %s^-1; estimate 7/60
     settings.insRateLptD = 0.5; % per BAM
@@ -236,6 +236,27 @@ while time < maxTime
     
     
     % calculate anything you want to calculate
+    
+    
+    % SHRINK THE MEMBRANE
+    
+    % check to see if we have exceeded twice the original length
+    
+        % if we have, cut the left side out
+        
+        % first take a picture of how it looked
+        
+        % all polygons/BAMS/LptD with all vertices greater than zero are removed
+        
+        % all polygons/BAMS/LptD with a vertex greater than zero have that vertex set
+        % to zero
+        
+        % all polygons/BAMS/LptD with a vertex less than 2L have that vertex
+        % set to 2L
+        
+        % move all remaining vertices/BAMS/LptD to the right by L
+        
+        % take a picture of how it looked
     
     
     % increase time
