@@ -3,26 +3,26 @@ function mainModel(settings)
 % model settings, set here if nargin < 1 (no inputs passed)
 
 if nargin < 1
-    settings.polygonSides = 100;
+    settings.polygonSides = 200;
 
     settings.membraneCircumference = pi; % um
     settings.currentMaxLen = 2; %um
     settings.initialArea = settings.membraneCircumference*settings.currentMaxLen*2; % um^2
 
-    settings.insRateProtein = 0.1; %um^2/s; estimate pi*0.0024*0.0024
-    settings.insRateLPS = 1; % per LptD
+    settings.insRateProtein = 1; %um^2/s; estimate pi*0.0024*0.0024
+    settings.insRateLPS = 1; % um^2/s
 
-    settings.insRateBAM = 0.5; %s^-1; estimate 7/60
-    settings.insRateLptD = 0.5; % per BAM
+    settings.insRateBAM = 0.3; %s^-1; estimate 7/60
+    settings.insRateLptD = 1; % per BAM
 
     settings.growthRate = settings.insRateLPS*settings.insRateLptD*settings.insRateBAM + settings.insRateProtein*settings.insRateBAM; % units I think um^2/s^2
     settings.sqrtGrowthRate = sqrt(settings.growthRate); % units I think um/s
 
-    settings.BAMsize = 0.01;
+    settings.BAMsize = 0.05;
 
     settings.time = 0;
     settings.dt = 0.01; %s
-    settings.maxTime = 2;
+    settings.maxTime = 3;
 
     settings.proteinAddedNewInsertion = settings.insRateProtein*settings.dt;
     settings.LPSAddedNewInsertion = settings.insRateLPS*settings.dt;
@@ -58,7 +58,7 @@ LPSAddedNewInsertion = settings.LPSAddedNewInsertion;
 model.BAMlocs = [[0,0.5*pi]];
 model.LptDlocs = [];
 model.proteinVertices = [];
-model.lpsVertices = [];
+model.lpsVertices = NaN(settings.polygonSides,2);
 
 model.settings = settings;
 
@@ -68,16 +68,21 @@ for i=1:size(model.BAMlocs,1)
     model.proteinVertices(:,:,i) = vertices;
 end
 
+for i=1:size(model.LptDlocs,1)
+    vertices = findVerticesNewMaterial(model.LptDlocs(i,:),polygonSides,LPSAddedNewInsertion);
+    model.lpsVertices(:,:,i) = vertices;
+end
 
-% make a pretty plot
+%make a pretty plot
 figure;hold on;
 
-plot(model.BAMlocs(:,1),model.BAMlocs(:,2),'xk','linewidth',2)
-plot([currentMaxLen,currentMaxLen],[0,membraneCircumference],'k-')
-plot([-currentMaxLen,-currentMaxLen],[0,membraneCircumference],'k-')
+visualiseSimple(model)
+
 
 % while time is less than max time
+count = 0;
 while time < maxTime
+    count = count + 1;
 
     % we need to maintain a list of newly inserted insertion points, or at
     % least their indices
@@ -143,13 +148,14 @@ while time < maxTime
 
         model.LptDlocs(newLptDLocsIndex,:) = newLptDlocs(lptD,:);        
     end
+    
 
     % move protein polygon vertices
     % have to loop through all polygons, then all pairs of vertices
     for poly = 1:size(model.proteinVertices,3)
         for j=1:size(model.proteinVertices(:,:,1),1)
 
-            flow = calcFlow(model.proteinVertices(j,:,poly),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference);
+            flow = calcFlow(model.proteinVertices(j,:,poly),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
             
             newPos = findNewVertexPosition(model.proteinVertices(j,:,poly),flow,dt,membraneCircumference);
             
@@ -159,10 +165,11 @@ while time < maxTime
     
     % move lps polygon vertices
     % have to loop through all polygons, then all pairs of vertices
+
     for poly = 1:size(model.lpsVertices,3)
         for j=1:size(model.lpsVertices(:,:,1),1)
 
-            flow = calcFlow(model.lpsVertices(j,:,poly),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference);
+            flow = calcFlow(model.lpsVertices(j,:,poly),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
             
             newPos = findNewVertexPosition(model.lpsVertices(j,:,poly),flow,dt,membraneCircumference);
             
@@ -170,36 +177,53 @@ while time < maxTime
         end
     end
     
-    % move insertion points (protein)
-    
-    for j = 1:size(model.BAMlocs,1)
-        % find the flow from all points EXCEPT itself
-        tempBAMlocs = model.BAMlocs;
-        tempBAMlocs(j,:) = [];
-        
-        flow = calcFlow(model.BAMlocs(j,:),tempBAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference);
-            
-        newPos = findNewVertexPosition(model.BAMlocs(j,:),flow,dt,membraneCircumference);
-            
-        model.BAMlocs(j,:) = newPos;
-        
-    end
     
     % move insertion points (lps)
+    
+    % have to record new positions separately and move everything
+    % simultaneously
+    movedLptDlocs = zeros(size(model.LptDlocs));
     
     for j = 1:size(model.LptDlocs,1)
         % find the flow from all points EXCEPT itself
         tempLptDlocs = model.LptDlocs;
         tempLptDlocs(j,:) = [];
         
-        flow = calcFlow(model.LptDlocs(j,:),model.BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference);
+        flow = calcFlow(model.LptDlocs(j,:),model.BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,0);
             
         newPos = findNewVertexPosition(model.LptDlocs(j,:),flow,dt,membraneCircumference);
             
-        model.LptDlocs(j,:) = newPos;
+        %model.LptDlocs(j,:) = newPos;
+        movedLptDlocs(j,:) = newPos;
         
     end
     
+    % move insertion points (protein)
+    
+    % we need to record the new positions separately and then move
+    % everything simultaneously
+    movedBAMlocs = zeros(size(model.BAMlocs));
+        
+    for j = 1:size(model.BAMlocs,1)
+        % find the flow from all points EXCEPT itself
+        tempBAMlocs = model.BAMlocs;
+        tempBAMlocs(j,:) = [];
+
+        flow = calcFlow(model.BAMlocs(j,:),tempBAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+        
+        
+        newPos = findNewVertexPosition(model.BAMlocs(j,:),flow,dt,membraneCircumference);
+            
+        %model.BAMlocs(j,:) = newPos;
+        movedBAMlocs(j,:) = newPos;
+        
+    end
+    
+    % now that we have the new locations for both BAM and LptD, record them
+    
+    model.LptDlocs = movedLptDlocs;
+    model.BAMlocs = movedBAMlocs;
+
     % add new material from insertions
     
     % add new material (protein)
@@ -222,7 +246,12 @@ while time < maxTime
         for j=1:size(newLptDlocs,1)
             vertices = findVerticesNewMaterial(newLptDlocs(j,:),polygonSides,LPSAddedNewInsertion);
             
-            newLptDIndex = size(model.lpsVertices,3) + 1;
+            % test whether we already have some LPS vertices or not
+            if isnan(model.lpsVertices(1,1))
+                newLptDIndex = 1;
+            else
+                newLptDIndex = size(model.lpsVertices,3) + 1;
+            end
             
             model.lpsVertices(:,:,newLptDIndex) = vertices;
 
@@ -263,18 +292,18 @@ while time < maxTime
     
     time = time + dt;
     
+    % plot
+    
+    %visualiseSimple(model)
+
 end
 
-for poly = 1:size(model.proteinVertices,3)
-    plot(model.proteinVertices(:,1,poly),model.proteinVertices(:,2,poly),'x')
-end
+visualiseSimple(model)
 
-plot(model.BAMlocs(:,1),model.BAMlocs(:,2),'x','linewidth',2)
+figure;
+visualiseSimple(model)
 
+visualise(model)
 
-if numel(model.LptDlocs) > 0
-    plot(model.LptDlocs(:,1),model.LptDlocs(:,2),'d','linewidth',2)
-end
-
-visualise(model);
+%visualise(model);
 save('results.mat','model')

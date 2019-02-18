@@ -19,18 +19,34 @@
 % flow; 1x2 row vector which is the flow felt at pos caused by the
 % insertions
 
-function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference)
+function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference,flag)
 
 flow = [0,0];
 
 % calculate flow due to proteins
 
 for i=1:size(insertionLocsProtein,1)
-    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,membraneCircumference);
+    nextFlow = calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,membraneCircumference);
+    if flag == 1
+        disp(['flow due to bam ',num2str(i)])
+        nextFlow
+        pos
+        insertionLocsProtein
+        insRateProtein
+    end
+    flow = flow + nextFlow;
 end
 
 % calculate flow due to LPS
 
 for i=1:size(insertionLocsLPS,1)
-    flow = flow + calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),insRateLPS,membraneCircumference);
+    nextFlow = calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),insRateLPS,membraneCircumference);
+    if flag == 1
+        disp(['flow due to lptd ',num2str(i)])
+        nextFlow
+        pos
+        insertionLocsLPS
+        insRateLPS
+    end
+    flow = flow + nextFlow;
 end

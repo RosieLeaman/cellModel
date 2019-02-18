@@ -9,15 +9,15 @@ for poly = 1:size(model.proteinVertices,3)
     set(h,'facealpha',.5)
 end
 
-if numel(model.lpsVertices) > 0
+if numel(model.LptDlocs) > 0
     for poly = 1:size(model.lpsVertices,3)
         h = fill(model.lpsVertices(:,1,poly),model.lpsVertices(:,2,poly),'r');
         set(h,'facealpha',.5)
     end
-    plot(model.LptDlocs(:,1),model.LptDlocs(:,2),'d','linewidth',2)
+    plot(model.LptDlocs(:,1),model.LptDlocs(:,2),'rd','linewidth',2)
 end
 
-plot(model.BAMlocs(:,1),model.BAMlocs(:,2),'x','linewidth',2)
+plot(model.BAMlocs(:,1),model.BAMlocs(:,2),'bx','linewidth',2)
 
    
 
