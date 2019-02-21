@@ -1,10 +1,12 @@
-function surfaceTensionTest()
+function error = surfaceTensionTest(vertices)
 
 % get a circle
-vertices = 251;
+if nargin < 1
+    vertices = 51;
+end
 radius = 1;
 amount = (vertices*radius/2)*sin(2*pi/vertices);
-points = findVerticesNewMaterial([0,0],101,amount);
+points = findVerticesNewMaterial([0,0],vertices,amount);
 newPoints = points;
 
 % for a certain length of time
@@ -20,8 +22,11 @@ axis square
 %pause();
 
 count = 0;
-while time < maxTime
+%while time < maxTime
+while count < 1
     count = count + 1;
+    
+    errors = zeros(1,size(points,1));
     
     % iterate over each point in the circle
     for ii = 1:size(points,1)
@@ -38,7 +43,9 @@ while time < maxTime
         
         newPoints(ii,:) = points(ii,:) + flow*dt;
         
-        if ii == 1
+        errors(ii) = findDist(points(ii,:),newPoints(ii,:));
+        
+        if ii == size(points,1)-1 || ii == size(points,1)-2
             disp('old')
             points(ii,:)
             disp('new')
@@ -46,13 +53,14 @@ while time < maxTime
             disp('nonsense')
             un
             normal
-            
-            phi = atan2(points(ii,2),points(ii,1))
-            trueNormal = [cos(phi),sin(phi)]
-            trueTangent = [-sin(phi),cos(phi)]
+
         end
            
     end
+    
+    % the error is just un actually
+    error = mean(errors);
+    errors
     
     points = newPoints;
 
@@ -65,8 +73,6 @@ while time < maxTime
     %pause();
     
     time = time + dt;
-    
-    points
 
 end
 
@@ -81,53 +87,51 @@ r0 = points(index,:);
 
 % add the end of points to the beginning and beginning to the end so it
 % loops round (makes it more easy to do the loop later)
-% it doesn't matter where we start the integral. And we can't allow repeats
+% it doesn't matter where we start the integral. And repeats of r0 are
+% annoying, so arrange it so this doesn't happen (p124 lab book)
 
-points2 = [points(end,:);points;points(1,:);points(2,:)];
+if index <= size(points,1) - 2
+    points2 = [points(index:end,:);points(1:index+2,:)];
+elseif index <= size(points,1)-1
+    points2 = [points(index:end,:);points(1:index+1,:);points(1,:)];
+else
+    points2 = [points(index:end,:);points(1:index,:);points(1:2,:)];
+end
 
-% this shifts our original index up by 1
-newIndex = index + 1;
+% this shifts our original index up by the size of points + 1
+newIndex = size(points,1) + 1;
 
 [normal,~] = findTangentQuadratic(points2(newIndex-1,:),points2(newIndex,:),points2(newIndex+1,:),1);
 
-%phi = atan2(points2(newIndex,2),points2(newIndex,1));
-%normal = [cos(phi),sin(phi)];
+% phi = atan2(points2(newIndex,2),points2(newIndex,1));
+% normal = [cos(phi),sin(phi)];
 
 integrandValsX = zeros(size(points2,1)-2,1);
 integrandValsY = zeros(size(points2,1)-2,1);
 
 distances = zeros(size(points2,1)-2,1);
 
-% note we loop from 2 to size - 1 here as we added those two extra points
+% note we loop from 2 to size - 1 here as we added those three extra points
 % on the ends of our original points vector
 for i=2:(size(points2,1)-1)
     
     % calculate the tangent at points(i)
     [~,tangent] = findTangentQuadratic(points2(i-1,:),points2(i,:),points2(i+1,:),1);
     
-    %phi = atan2(points2(i,2),points2(i,1));
-    %tangent = [-sin(phi),cos(phi)];
+%     phi = atan2(points2(i,2),points2(i,1));
+%     tangent = [-sin(phi),cos(phi)];
 
     
     %  find the value of the integrand at points(i)
     if i ~= newIndex
         [integrandX,integrandY] = calcIntegrand2(r0,points2(i,:),tangent);
-        if index == 1 && i == (size(points2,1)-1)
-            disp('ehh')
-            integrandX
-            integrandY
-            r0
-            points2(i,:)
-            tangent
-            disp('ehhhhhh')
-        end
     else
         integrandX = 0;
         integrandY = 0;
     end
     
-    integrandValsX(i-1) = integrandX;
-    integrandValsY(i-1) = integrandY;
+    integrandValsX(i-1) = integrandX/(2*pi);
+    integrandValsY(i-1) = integrandY/(2*pi);
     
     % now that we have the values for the integral we need to know the
     % distances between points. These get added together so we know the
@@ -138,23 +142,51 @@ for i=2:(size(points2,1)-1)
     else
         distances(i-1) = distances(i-2) + findDist(points2(i,:),points2(i-1,:));
     end
+    
+    if index == size(points,1)-1 || index == size(points,1)-2
+        if i==2 || i==(size(points2,1)-1)
+            disp(['eh i = ',num2str(i),' index= ',num2str(index)])
+            
+            points2
+            
+            integrandX
+            integrandY
+            r0
+            disp('points(index)')
+            points(index,:)
+            disp('i')
+            points2(i,:)
+            disp('i-1')
+            points2(i-1,:)
+            disp('i+1')
+            points2(i+1,:)
+            tangent
+            
+            disp('ehhhhh')
+            
+        end
+        
+    end
 end
 
 % do the integration
 resultX = trapz(distances,integrandValsX);
 resultY = trapz(distances,integrandValsY);
 
-if index == 1
+if index == size(points,1)-1 || index == size(points,1)-2
     integrandValsX
     integrandValsY
     distances
     resultX
     resultY
-    dr = points2(1,:) - r0
+    
+    index2 = (size(points2,1)-1);
+    
+    dr = points2(index2,:) - r0
 
     square = (dr(1).^2 + dr(2).^2)    
     
-    index2 = (size(points2,1)-1);
+    
     [~,tangent] = findTangentQuadratic(points2(index2-1,:),points2(index2,:),points2(index2+1,:),1)
     
     phi = atan2(points2(index2,2),points2(index2,1))
@@ -214,7 +246,6 @@ function result = calcJexpression(dX,dY,tX,tY)
 result = tX*tX*(dY*dY-dX*dX) - 4*tX*tY*dX*dY + tY*tY*(dX*dX-dY*dY);
 
 end
-
 
 function result = calcJxxx(dX,square)
 % dY is not needed to  calculate Jxxx
