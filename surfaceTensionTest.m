@@ -15,9 +15,9 @@ time = 0;
 maxTime = 0.03;
 dt = 0.01;
 
-figure;
-plot(points(:,1),points(:,2),'x-');
-axis square
+% figure;
+% plot(points(:,1),points(:,2),'x-');
+% axis square
 
 %pause();
 
@@ -45,22 +45,22 @@ while count < 1
         
         errors(ii) = findDist(points(ii,:),newPoints(ii,:));
         
-        if ii == size(points,1)-1 || ii == size(points,1)-2
-            disp('old')
-            points(ii,:)
-            disp('new')
-            newPoints(ii,:)
-            disp('nonsense')
-            un
-            normal
-
-        end
+%         if ii == size(points,1)-1 || ii == size(points,1)-2
+%             disp('old')
+%             points(ii,:)
+%             disp('new')
+%             newPoints(ii,:)
+%             disp('nonsense')
+%             un
+%             normal
+% 
+%         end
            
     end
     
     % the error is just un actually
     error = mean(errors);
-    errors
+    errors;
     
     points = newPoints;
 
@@ -143,60 +143,36 @@ for i=2:(size(points2,1)-1)
         distances(i-1) = distances(i-2) + findDist(points2(i,:),points2(i-1,:));
     end
     
-    if index == size(points,1)-1 || index == size(points,1)-2
-        if i==2 || i==(size(points2,1)-1)
-            disp(['eh i = ',num2str(i),' index= ',num2str(index)])
-            
-            points2
-            
-            integrandX
-            integrandY
-            r0
-            disp('points(index)')
-            points(index,:)
-            disp('i')
-            points2(i,:)
-            disp('i-1')
-            points2(i-1,:)
-            disp('i+1')
-            points2(i+1,:)
-            tangent
-            
-            disp('ehhhhh')
-            
-        end
-        
-    end
 end
 
 % do the integration
 resultX = trapz(distances,integrandValsX);
 resultY = trapz(distances,integrandValsY);
 
-if index == size(points,1)-1 || index == size(points,1)-2
-    integrandValsX
-    integrandValsY
-    distances
-    resultX
-    resultY
-    
-    index2 = (size(points2,1)-1);
-    
-    dr = points2(index2,:) - r0
-
-    square = (dr(1).^2 + dr(2).^2)    
-    
-    
-    [~,tangent] = findTangentQuadratic(points2(index2-1,:),points2(index2,:),points2(index2+1,:),1)
-    
-    phi = atan2(points2(index2,2),points2(index2,1))
-    trueNormal = [cos(phi),sin(phi)]
-    trueTangent = [-sin(phi),cos(phi)]
-    
-    calcJexpression(dr(1),dr(2),tangent(1),tangent(2))
-    calcJexpression(dr(1),dr(2),trueTangent(1),trueTangent(2))
-    
-end
+% if index == size(points,1)-1 || index == size(points,1)-2
+%     integrandValsX
+%     integrandValsY
+%     distances
+%     resultX
+%     resultY
+%     
+%     index2 = (size(points2,1)-1);
+%     
+%     dr = points2(index2,:) - r0
+% 
+%     square = (dr(1).^2 + dr(2).^2)    
+%     
+%     
+%     [~,tangent] = findTangentQuadratic(points2(index2-1,:),points2(index2,:),points2(index2+1,:),1)
+%     
+%     phi = atan2(points2(index2,2),points2(index2,1))
+%     trueNormal = [cos(phi),sin(phi)]
+%     trueTangent = [-sin(phi),cos(phi)]
+%     
+%     calcJexpression(dr(1),dr(2),tangent(1),tangent(2))
+%     calcJexpression(dr(1),dr(2),trueTangent(1),trueTangent(2))
+%     
+% end
 
 % we have to dot with the normal to get the size of the flow in the normal
 % direction
