@@ -146,8 +146,27 @@ for i=2:(size(points2,1)-1)
 end
 
 % do the integration
-resultX = trapz(distances,integrandValsX);
-resultY = trapz(distances,integrandValsY);
+% resultX = trapz(distances,integrandValsX);
+% resultY = trapz(distances,integrandValsY);
+
+resultX = irregularSimpson(distances,integrandValsX);
+resultY = irregularSimpson(distances,integrandValsY);
+
+if index == size(points,1)-1 || index == size(points,1)-2
+    disp('trapz')
+    
+    trapz(distances,integrandValsX)
+    trapz(distances,integrandValsY)
+    
+    disp('simpson')
+    
+    irregularSimpson(distances,integrandValsX)
+    irregularSimpson(distances,integrandValsY)
+    
+    figure;
+    plot(distances,integrandValsX,'x-')
+    
+end
 
 % if index == size(points,1)-1 || index == size(points,1)-2
 %     integrandValsX
@@ -261,5 +280,37 @@ function result = calcJyyy(dY,square)
 % dX is not needed to  calculate Jyyy
 
 result = dY/square - 2*(dY.^3)/square.^2;
+
+end
+
+function quad = irregularSimpson2(x,y)
+% calculates the simpson quadrature rule for the x values with matching y
+% value. See wikipedia
+if mod(size(x,1)-1,2) == 0
+    % there are different expressions depending on if there are even or odd
+    % number of subintervals. We should always be even but check.
+    
+    quad = 0;
+    
+    h = x(2:end)-x(1:end-1); % this is the interval widths
+    
+    for i=1:size(x,1)/2
+        i
+    
+        alpha = (2*h(2*i+1)^3 - h(2*i)^2 + 3*h(2*i)*h(2*i+1)^2)/(6*h(2*i+1)*(h(2*i+1)+h(2*i)));
+
+        beta = (h(2*i+1)^2+h(2*i)^3+3*h(2*i+1)*h(2*i)*(h(2*i+1)+h(2*i)))/(6*h(2*i+1)*h(2*i));
+
+        gamma = (2*h(2*i)^3-h(2*i+1)^3+3*h(2*i+1)*h(2*i)^2)/(6*h(2*i)*(h(2*i+1)+h(2*i)));
+
+        quad = quad + alpha*y(2*i+2) + beta*y(2*i+1) + gamma*y(2*i);
+    
+    end
+    
+else
+    disp('aaaaaah')
+    quad = NaN;
+    
+end
 
 end
