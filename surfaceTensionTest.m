@@ -5,16 +5,19 @@ if nargin < 1
     vertices = 51;
 end
 
-radius = 1;
-amount = (vertices*radius/2)*sin(2*pi/vertices);
-%points = findVerticesNewMaterial([0,0],vertices,amount);
+% radius = 1;
+% amount = (vertices*radius/2)*sin(2*pi/vertices);
+% points = findVerticesNewMaterial([0,0],vertices,amount);
+
 points = zeros(vertices,2);
+angles = zeros(vertices,1);
 
 index = 0;
 while index < vertices
     theta = 0 + (2*pi*index)/vertices;
     points(index+1,1) = cos(theta);
-    points(index+1,2) = sin(theta);
+    points(index+1,2) = 2*sin(theta);
+    angles(index+1) = theta;
     index = index + 1;
 end
 
@@ -24,7 +27,7 @@ newPoints = points;
 % for a certain length of time
 
 time = 0;
-maxTime = 0.03;
+maxTime = 0.1;
 dt = 0.01;
 
 % errors!
@@ -33,7 +36,8 @@ error = 0;
 
 figure;
 plot(points(:,1),points(:,2),'x-');
-xlim([-1.2,1.2]);ylim([-1.2,1.2]);
+xlim([-1.2,1.2]);ylim([-2.2,2.2]);
+hold on;
 
 %pause();
 
@@ -41,6 +45,8 @@ count = 0;
 idx = 1;
 
 disp('starting loop')
+
+uns = zeros(vertices,1);
 
 %while time < maxTime
 while count < 1
@@ -52,7 +58,18 @@ while count < 1
     for ii = 1:size(points,1)
         % find the flow strength
         
-        [un,normal] = calculateIntegral(ii,points);
+        [un,normal,tangent] = calculateIntegral(ii,points);
+        uns(ii) = un;
+        
+        news = [points(ii,:);points(ii,:)+0.3*normal];
+        plot(news(:,1),news(:,2),'r-x')
+        news = [points(ii,:);points(ii,:)+0.3*tangent];
+        plot(news(:,1),news(:,2),'k-x')
+        ii
+        normal
+        tangent
+        dot(normal,tangent)
+        
         
         % this has to be applied in the direction of the outward pointing
         % normal
@@ -63,7 +80,8 @@ while count < 1
         
         newPoints(ii,:) = points(ii,:) + flow*dt;
         
-        %errors(ii) = findDist(points(ii,:),newPoints(ii,:));
+        errors(ii) = findDist(points(ii,:),newPoints(ii,:));
+        
         
 %         if ii == size(points,1)-1 || ii == size(points,1)-2
 %             disp('old')
@@ -80,20 +98,22 @@ while count < 1
     
     % the error is just un actually
     %error = mean(errors);
-    %errors;
     
     points = newPoints;
+    
+%     figure;plot(angles,errors)
+%     figure;plot(angles,uns)
 
     % show us the picture        
-    if mod(count,2) == 0
-        fig = figure;
-        plot(points(:,1),points(:,2),'x');
-        xlim([-1.2,1.2]);ylim([-1.2,1.2]);
-        
-        frame = getframe(fig);
-        im{idx} = frame2im(frame);
-        idx = idx + 1;
-    end
+%     if mod(count,3) == 0
+%         fig = figure;
+%         plot(points(:,1),points(:,2),'x');
+%         xlim([-1.2,1.2]);ylim([-2.2,2.2]);
+%         
+%         frame = getframe(fig);
+%         im{idx} = frame2im(frame);
+%         idx = idx + 1;
+%     end
     %pause();
     
     time = time + dt;
@@ -108,7 +128,7 @@ end
 
 end
 
-function [result,normal] = calculateIntegral(index,points)
+function [result,normal,properTangent] = calculateIntegral(index,points)
 % calculate the integral at the point points(index) = r0
 
 % calculate the normal at r0
@@ -120,37 +140,28 @@ r0 = points(index,:);
 % it doesn't matter where we start the integral. And repeats of r0 are
 % annoying, so arrange it so this doesn't happen (p124 lab book)
 
-% flipPoints = fliplr(points');
-% flipPoints = flipPoints';
-% flipIndex = size(points,1)-index+1;
 
 if index > 1 && index < size(points,1)
     % we are not at the end points
     points2 = [points(index-1:end,:);points(1:index+1,:)];
-    %points3 = [flipPoints(flipIndex-1:end,:);flipPoints(1:flipIndex+1,:)];
 elseif index == 1
     % at the start
     points2 = [points(end,:);points;points(1:2,:)];
-    %points3 = [flipPoints(end,:);flipPoints;flipPoints(1:2,:)];
 else
     % at the end
     points2 = [points(end-1:end,:);points;points(1,:)];
-    %points3 = [flipPoints(end-1:end,:);flipPoints;flipPoints(1,:)];
 end
 
 % this shifts our original index up by the size of points + 1
 newIndex = size(points,1) + 1;
 
-[normal,~] = findTangentQuadratic(points2(newIndex-1,:),points2(newIndex,:),points2(newIndex+1,:),1);
+[normal,properTangent] = findTangentQuadratic(points2(newIndex-1,:),points2(newIndex,:),points2(newIndex+1,:),1);
 
 % phi = atan2(points2(newIndex,2),points2(newIndex,1));
 % normal = [cos(phi),sin(phi)];
 
 integrandValsX = zeros(size(points2,1)-2,1);
 integrandValsY = zeros(size(points2,1)-2,1);
-
-% integrandValsX2 = zeros(size(points2,1)-2,1);
-% integrandValsY2 = zeros(size(points2,1)-2,1);
 
 distances = zeros(size(points2,1)-2,1);
 
@@ -169,18 +180,12 @@ for i=2:(size(points2,1)-1)
     if i == 2 || i==size(points2,1)-1
         integrandX = 0;
         integrandY = 0;
-%         integrandX2 = 0;
-%         integrandY2 = 0;
     else
         [integrandX,integrandY] = calcIntegrand2(r0,points2(i,:),tangent);
-        %[integrandX2,integrandY2] = calcIntegrand2(r0,points3(i,:),tangent);
     end
     
     integrandValsX(i-1) = integrandX/(2*pi);
     integrandValsY(i-1) = integrandY/(2*pi);
-    
-%     integrandValsX2(i-1) = integrandX2/(2*pi);
-%     integrandValsY2(i-1) = integrandY2/(2*pi);
     
     % now that we have the values for the integral we need to know the
     % distances between points. These get added together so we know the
@@ -196,12 +201,12 @@ for i=2:(size(points2,1)-1)
 end
 
 % do the integration
-resultX = trapz(distances,integrandValsX);
-resultY = trapz(distances,integrandValsY);
+% resultX = trapz(distances,integrandValsX);
+% resultY = trapz(distances,integrandValsY);
 
 
-% resultX = irregularSimpson(distances,integrandValsX);
-% resultY = irregularSimpson(distances,integrandValsY);
+resultX = irregularSimpson(distances,integrandValsX);
+resultY = irregularSimpson(distances,integrandValsY);
 
 if isnan(resultX) || isnan(resultY)
     index
