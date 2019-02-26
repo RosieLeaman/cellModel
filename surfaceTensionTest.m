@@ -16,7 +16,7 @@ index = 0;
 while index < vertices
     theta = 0 + (2*pi*index)/vertices;
     points(index+1,1) = cos(theta);
-    points(index+1,2) = 2*sin(theta);
+    points(index+1,2) = sin(theta);
     angles(index+1) = theta;
     index = index + 1;
 end
@@ -36,7 +36,7 @@ error = 0;
 
 figure;
 plot(points(:,1),points(:,2),'x-');
-xlim([-1.2,1.2]);ylim([-2.2,2.2]);
+xlim([-1.4,1.4]);ylim([-1.4,1.4]);
 hold on;
 
 %pause();
@@ -47,6 +47,8 @@ idx = 1;
 disp('starting loop')
 
 uns = zeros(vertices,1);
+normals = zeros(vertices,2);
+tangents = zeros(vertices,2);
 
 %while time < maxTime
 while count < 1
@@ -60,15 +62,18 @@ while count < 1
         
         [un,normal,tangent] = calculateIntegral(ii,points);
         uns(ii) = un;
+        normals(ii,:) = normal;
+        tangents(ii,:) = tangent;
         
-        news = [points(ii,:);points(ii,:)+0.3*normal];
-        plot(news(:,1),news(:,2),'r-x')
-        news = [points(ii,:);points(ii,:)+0.3*tangent];
-        plot(news(:,1),news(:,2),'k-x')
-        ii
-        normal
-        tangent
-        dot(normal,tangent)
+%         phiCorrect = atan2(points(ii,2),points(ii,1));
+%         normal = [cos(phiCorrect),sin(phiCorrect)];
+%         tangent = [-sin(phiCorrect),cos(phiCorrect)];
+        
+%         news = [points(ii,:);points(ii,:)+0.3*tangent];
+%         plot(news(:,1),news(:,2),'r-x')
+%         
+%         news = [points(ii,:);points(ii,:)+0.3*normal];
+%         plot(news(:,1),news(:,2),'k-x')
         
         
         % this has to be applied in the direction of the outward pointing
@@ -101,8 +106,37 @@ while count < 1
     
     points = newPoints;
     
-%     figure;plot(angles,errors)
-%     figure;plot(angles,uns)
+    figure;plot(angles,errors)
+    title('errors')
+    
+    figure;plot(angles,uns)
+    title('uns')
+    
+    max(uns)-min(uns)
+    
+    figure; hold on;
+    plot(angles,abs(cos(angles)-normals(:,1)),'r-x')
+%     plot(angles,cos(angles),'r-x');
+%     plot(angles,normals(:,1),'k-x')
+    title('x component theta hat')
+    
+    figure; hold on;
+    plot(angles,abs(sin(angles)-normals(:,2)),'r-x')
+%     plot(angles,sin(angles),'r-x');
+%     plot(angles,normals(:,2),'k-x')
+    title('y component theta hat')
+    
+    figure; hold on;
+    plot(angles,abs(-sin(angles)-tangents(:,1)),'r-x')
+%     plot(angles,-sin(angles),'r-x');
+%     plot(angles,tangents(:,1),'k-x')
+    title('x component r hat')
+    
+    figure; hold on;
+    plot(angles,abs(cos(angles)-tangents(:,2)),'r-x')
+%     plot(angles,cos(angles),'r-x');
+%     plot(angles,tangents(:,2),'k-x')
+    title('y component r hat')
 
     % show us the picture        
 %     if mod(count,3) == 0
@@ -140,6 +174,9 @@ r0 = points(index,:);
 % it doesn't matter where we start the integral. And repeats of r0 are
 % annoying, so arrange it so this doesn't happen (p124 lab book)
 
+% we want to arrange it so that our r0 is at the beginning/end of the
+% circle
+
 
 if index > 1 && index < size(points,1)
     % we are not at the end points
@@ -152,13 +189,15 @@ else
     points2 = [points(end-1:end,:);points;points(1,:)];
 end
 
-% this shifts our original index up by the size of points + 1
-newIndex = size(points,1) + 1;
+% our new index is always 2
+
+newIndex = 2;
 
 [normal,properTangent] = findTangentQuadratic(points2(newIndex-1,:),points2(newIndex,:),points2(newIndex+1,:),1);
-
-% phi = atan2(points2(newIndex,2),points2(newIndex,1));
-% normal = [cos(phi),sin(phi)];
+% 
+% phiCorrect = atan2(points2(newIndex,2),points2(newIndex,1));
+% normal = [cos(phiCorrect),sin(phiCorrect)];
+% properTangent = [-sin(phiCorrect),cos(phiCorrect)];
 
 integrandValsX = zeros(size(points2,1)-2,1);
 integrandValsY = zeros(size(points2,1)-2,1);
@@ -203,7 +242,6 @@ end
 % do the integration
 % resultX = trapz(distances,integrandValsX);
 % resultY = trapz(distances,integrandValsY);
-
 
 resultX = irregularSimpson(distances,integrandValsX);
 resultY = irregularSimpson(distances,integrandValsY);
@@ -314,37 +352,5 @@ function result = calcJyyy(dY,square)
 % dX is not needed to  calculate Jyyy
 
 result = dY/square - 2*(dY.^3)/square.^2;
-
-end
-
-function quad = irregularSimpson2(x,y)
-% calculates the simpson quadrature rule for the x values with matching y
-% value. See wikipedia
-if mod(size(x,1)-1,2) == 0
-    % there are different expressions depending on if there are even or odd
-    % number of subintervals. We should always be even but check.
-    
-    quad = 0;
-    
-    h = x(2:end)-x(1:end-1); % this is the interval widths
-    
-    for i=1:size(x,1)/2
-        i
-    
-        alpha = (2*h(2*i+1)^3 - h(2*i)^2 + 3*h(2*i)*h(2*i+1)^2)/(6*h(2*i+1)*(h(2*i+1)+h(2*i)));
-
-        beta = (h(2*i+1)^2+h(2*i)^3+3*h(2*i+1)*h(2*i)*(h(2*i+1)+h(2*i)))/(6*h(2*i+1)*h(2*i));
-
-        gamma = (2*h(2*i)^3-h(2*i+1)^3+3*h(2*i+1)*h(2*i)^2)/(6*h(2*i)*(h(2*i+1)+h(2*i)));
-
-        quad = quad + alpha*y(2*i+2) + beta*y(2*i+1) + gamma*y(2*i);
-    
-    end
-    
-else
-    disp('aaaaaah')
-    quad = NaN;
-    
-end
 
 end
