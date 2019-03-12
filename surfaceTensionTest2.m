@@ -17,7 +17,8 @@ while index < vertices
     index = index + 1;
 end
 
-points(18,:) = 1.5*points(18,:);
+% for spout
+%points(18,:) = 1.5*points(18,:);
 
 newPoints = points;
 
@@ -45,11 +46,11 @@ disp('starting loop')
 
 uns = zeros(vertices,1);
 
-while time < maxTime
-%while count < 1
+%while time < maxTime
+while count < 1
     count = count + 1;
     
-    %errors = zeros(1,size(points,1));
+    errors = zeros(1,size(points,1));
     
     % we should fit the spline here, as there's no point doing it every
     % time
@@ -75,13 +76,14 @@ while time < maxTime
 
         % find the flow strength
         
-        if ii < 5
+        if ii < (halfway/2)
             % because we shifted the points round to get the second spline
             % the index for the new normals in normals2 is not the same as
             % the normal index but is shifted
             correctNormalIndex = size(points2halfway,1)-halfway+ii;
             un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2);
-        elseif size(points,1) - ii < 5
+        elseif size(points,1) - ii < (halfway/2)
+            % is this correctNormalIndex correct???? CHECK
             correctNormalIndex = ii - halfway + 1;
             un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2);            
         else        
@@ -106,12 +108,12 @@ while time < maxTime
         
         newPoints(ii,:) = points(ii,:) + flow*dt;
         
-        %errors(ii) = findDist(points(ii,:),newPoints(ii,:));
+        errors(ii) = findDist(points(ii,:),newPoints(ii,:));
       
     end
     
     % the error is just un actually
-    %error = mean(errors);
+    error = mean(errors);
     
     points = newPoints;  
     
@@ -132,8 +134,8 @@ while time < maxTime
 %     figure;
 %     plot(angles,uns)
 %     
-%     figure;
-%     plot(angles,errors,'x-')
+    figure;
+    plot(angles,errors,'x-')
     
 %     figure;
 %     plot(angles,abs(cos(angles)-normals(1:end-1,1)))
@@ -145,11 +147,11 @@ while time < maxTime
 
 end
 
-saveLocation = 'testCircle.tif';
-imwrite(im{1},saveLocation)
-for i=2:numel(im)
-    imwrite(im{i},saveLocation,'WriteMode','append')
-end
+% saveLocation = 'testCircle.tif';
+% imwrite(im{1},saveLocation)
+% for i=2:numel(im)
+%     imwrite(im{i},saveLocation,'WriteMode','append')
+% end
 
 end
 

@@ -8,7 +8,7 @@
 % normal; a 1x2 row vector which is the outward pointing normal to the curve at x1
 % tangent; a 1x2 row vector which is the tangent to the curve at x1
 
-function [normal,tangent] = findTangent(x0,x1,x2,unit)
+function [normal,tangent] = findTangent(x1,x2,unit)
 
 tangent = 0.5*(x2-x1);
 
@@ -17,5 +17,5 @@ if unit == 1
     tangent = tangent./tangentNorm;
 end
 
-normal = [-tangent(2),tangent(1)];
+normal = [tangent(2),-tangent(1)];
 

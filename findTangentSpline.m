@@ -16,7 +16,7 @@ ppvalY = spline(t,x(:,2));
 ppx = ppval(ppvalX,t);
 ppy = ppval(ppvalY,t);
 
-figure;plot(ppx,ppy,'kx-')
+% figure;plot(ppx,ppy,'kx-')
 
 % we now need to 'differentiate' these to get dx/dt and dy/dt
 
@@ -39,3 +39,18 @@ normals = zeros(size(x,1),2);
 for i=1:size(tangents,1)
     normals(i,:) = [tangents(i,2),-tangents(i,1)];
 end
+
+% figure;
+% subplot(1,2,1);hold on
+% plot(x(:,1),x(:,2),'k-x')
+% for i=1:size(x,1)
+%     news = [x(i,:);x(i,:)+0.3*tangents(i,:)];
+%     plot(news(:,1),news(:,2),'b-x')
+% end
+% 
+% subplot(1,2,2);hold on
+% plot(x(:,1),x(:,2),'k-x')
+% for i=1:size(x,1)
+%     news = [x(i,:);x(i,:)+0.3*normals(i,:)];
+%     plot(news(:,1),news(:,2),'r-x')
+% end

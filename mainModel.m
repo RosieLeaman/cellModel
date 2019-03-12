@@ -3,7 +3,7 @@ function mainModel(settings)
 % model settings, set here if nargin < 1 (no inputs passed)
 
 if nargin < 1
-    settings.polygonSides = 200;
+    settings.polygonSides = 251;
 
     settings.membraneCircumference = pi; % um
     settings.currentMaxLen = 2; %um
@@ -12,8 +12,8 @@ if nargin < 1
     settings.insRateProtein = 1; %um^2/s; estimate pi*0.0024*0.0024
     settings.insRateLPS = 1; % um^2/s
 
-    settings.insRateBAM = 0.3; %s^-1; estimate 7/60
-    settings.insRateLptD = 1; % per BAM
+    settings.insRateBAM = 0; %s^-1; estimate 7/60
+    settings.insRateLptD = 0; % per BAM
 
     settings.growthRate = settings.insRateLPS*settings.insRateLptD*settings.insRateBAM + settings.insRateProtein*settings.insRateBAM; % units I think um^2/s^2
     settings.sqrtGrowthRate = sqrt(settings.growthRate); % units I think um/s
@@ -22,7 +22,9 @@ if nargin < 1
 
     settings.time = 0;
     settings.dt = 0.01; %s
-    settings.maxTime = 3;
+    settings.maxTime = 0;
+    
+    settings.surfaceTensionFlag = 1;
 
     settings.proteinAddedNewInsertion = settings.insRateProtein*settings.dt;
     settings.LPSAddedNewInsertion = settings.insRateLPS*settings.dt;
@@ -64,8 +66,14 @@ model.settings = settings;
 
 % for all existing insertions add new protein material
 for i=1:size(model.BAMlocs,1)
-    vertices = findVerticesNewMaterial(model.BAMlocs(i,:),polygonSides,proteinAddedNewInsertion);
+    model.BAMlocs(i,:)
+    polygonSides
+    proteinAddedNewInsertion
+    vertices = findVerticesNewMaterialCircle(model.BAMlocs(i,:),polygonSides,proteinAddedNewInsertion);
     model.proteinVertices(:,:,i) = vertices;
+    
+    surfaceTensionPolygon(model.proteinVertices(:,:,1),dt)
+    
 end
 
 for i=1:size(model.LptDlocs,1)
@@ -261,7 +269,34 @@ while time < maxTime
     end
         
     
-    % resolve boundary issues
+    % move points under surface tension if required
+    
+    if settings.surfaceTensionFlag == 1
+        
+        % we want to move the vertices of each polygon due to surface
+        % tension
+        
+        % do protein first
+        
+        for poly = 1:size(model.proteinVertices,3)
+            
+            newPoints = surfaceTensionPolygon(model.proteinVertices(:,:,poly),dt);
+            
+            model.proteinVertices(:,:,poly) = newPoints;
+        end
+        
+        % then LPS, but only if lps vertices exist
+        
+        if ~isempty(model.LptDlocs)
+            for poly = 1:size(model.lpsVertices,3)
+
+                newPoints = surfaceTensionPolygon(model.lpsVertices(:,:,poly),dt);
+
+                model.lpsVertices(:,:,poly) = newPoints;
+            end
+        end
+        
+    end
     
     
     % calculate anything you want to calculate
