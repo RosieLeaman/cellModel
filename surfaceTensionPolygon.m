@@ -55,6 +55,8 @@ for ii = 1:size(points,1)
 
     % this has to be applied in the direction of the outward pointing
     % normal
+    
+    % why is this minused?
 
     flow = -un.*normals(ii,:);
 
@@ -66,7 +68,7 @@ for ii = 1:size(points,1)
 
 end
 
-figure;plot(errors)
+%figure;plot(errors)
 
 end
 

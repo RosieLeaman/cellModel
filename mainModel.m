@@ -1,16 +1,61 @@
-function mainModel(settings)
+% This is the main code for the model. It takes given positions and runs
+% the code for so many iterations
 
-% model settings, set here if nargin < 1 (no inputs passed)
+% INPUTS:
+% plotYes; 0 or 1 depending on whether we want to plot figures or not
+% settings; a struct containing data about the model variables. Required
+% fields are
+%   polygonSides; number of sides to use to approximate polygons
+%   membraneCircumference; the circumference of the cylindrical part of the
+%       membrane
+%   currentMaxLen; the initial length of the membrane (determines positions
+%       of new BAM)
+%   insRateProtein; insertion rate of protein from BAM
+%   insRateLPS; insertion rate of LPS from LptD
+%   insRateBAM; insertion rate of BAM complexes
+%   insRateLptD; insertion rate of LptD from BAM
+%   BAMsize; size of a BAM complex (radius)
+%   time; initial time (should basically always be zero)
+%   dt; time step size 
+%   maxTime; time at which simulation will end (number of steps is
+%       (maxTime-time)/dt)
+%   surfaceTensionFlag; 0 or 1 depending if you want surface tension to be
+%       included in the model
+%   saveLocation; folder location to save any information at
+%   for more details see the code below
+%
+% initPositions; a struct that determines the initial positions of BAM/LptD
+% required fields are:
+%   BAMlocs; nx2 matrix of [x,y] row vectors containing locations of BAM complexes
+%   LptDlocs; mx2 matrix of [x,y] row vectors containing locations of LptD complexes
+%   proteinVertices; nxkx2 matrix where n is number of BAM complexes, k is
+%       number of vertices for each polygon and each entry is a row vector
+%       [x,y] with position of each vertex
+%   lpsVertices; mxkx2 matrix where m is number of LptD molecules, k is
+%       number of vertices for each polygon and each entry is a row vector
+%       [x,y] with position of each vertex
 
-if nargin < 1
+% OUTPUTS:
+% NO argument outputs
+% saves the model variable to a file called 'results.mat'
+
+
+function mainModel(plotYes,settings,initPositions)
+
+% we can input either settings or both settings and initial positions
+
+if nargin < 2
+    % first argument is settings always, this is all the data about
+    % insertion rates and stuff
+    
     settings.polygonSides = 251;
 
     settings.membraneCircumference = pi; % um
     settings.currentMaxLen = 2; %um
     settings.initialArea = settings.membraneCircumference*settings.currentMaxLen*2; % um^2
 
-    settings.insRateProtein = 1; %um^2/s; estimate pi*0.0024*0.0024
-    settings.insRateLPS = 1; % um^2/s
+    settings.insRateProtein = 100; %um^2/s; estimate pi*0.0024*0.0024
+    settings.insRateLPS = 100; % um^2/s
 
     settings.insRateBAM = 0; %s^-1; estimate 7/60
     settings.insRateLptD = 0; % per BAM
@@ -18,17 +63,50 @@ if nargin < 1
     settings.growthRate = settings.insRateLPS*settings.insRateLptD*settings.insRateBAM + settings.insRateProtein*settings.insRateBAM; % units I think um^2/s^2
     settings.sqrtGrowthRate = sqrt(settings.growthRate); % units I think um/s
 
-    settings.BAMsize = 0.05;
+    settings.BAMsize = 1;
 
     settings.time = 0;
     settings.dt = 0.01; %s
-    settings.maxTime = 0;
+    settings.maxTime = 0.1;
     
     settings.surfaceTensionFlag = 1;
 
     settings.proteinAddedNewInsertion = settings.insRateProtein*settings.dt;
     settings.LPSAddedNewInsertion = settings.insRateLPS*settings.dt;
+    
+    settings.saveLocation = '';
+
+elseif nargin < 2
+    % we have the settings, but not the initial positions of BAM and LptD.
+    % Set these positions now
+    
+    initPositions.BAMlocs = [[0,0.5*pi]];
+    initPositions.LptDlocs = [];
+    initPositions.proteinVertices = [];
+    initPositions.lpsVertices = NaN(settings.polygonSides,2);
+    
+    % for all existing insertions add the corresponding material (note this
+    % assumes one time step, if you want to skip you must pass the
+    % vertices as an input)
+    
+    for i=1:size(initPositions.BAMlocs,1)
+        initPositions.BAMlocs(i,:)
+        vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(i,:),settings.polygonSides,settings.proteinAddedNewInsertion);
+        initPositions.proteinVertices(:,:,i) = vertices;
+        
+        % note here we need to use settings.xyz as the plain non
+        % settings.xyz parameters are set after this if statement
+    end
+
+    for i=1:size(initPositions.LptDlocs,1)
+        vertices = findVerticesNewMaterial(initPositions.LptDlocs(i,:),settings.polygonSides,settings.LPSAddedNewInsertion);
+        initPositions.lpsVertices(:,:,i) = vertices;
+    end
+    
 end
+
+% set all the used parameters now, either to the values that were passed
+% (if nargin >= 1) or to the values set above (if nargin < 1)
 
 polygonSides = settings.polygonSides;
 
@@ -54,37 +132,25 @@ maxTime = settings.maxTime;
 proteinAddedNewInsertion = settings.proteinAddedNewInsertion;
 LPSAddedNewInsertion = settings.LPSAddedNewInsertion;
 
-% set up the model (as a struct)
+% all information will be saved in the model struct
 
-%BAMlocs = [[3,3];[3.3,3.3];[3.3,2.7]];
-model.BAMlocs = [[0,0.5*pi]];
-model.LptDlocs = [];
-model.proteinVertices = [];
-model.lpsVertices = NaN(settings.polygonSides,2);
+model.BAMlocs = initPositions.BAMlocs;
+model.BAMlocsInit = initPositions.BAMlocs; % store initial BAMlocs
+model.LptDlocs = initPositions.LptDlocs;
+model.LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
+model.proteinVertices = initPositions.proteinVertices;
+model.lpsVertices = initPositions.lpsVertices;
+
+% save the settings used to construct the model in model as well
 
 model.settings = settings;
 
-% for all existing insertions add new protein material
-for i=1:size(model.BAMlocs,1)
-    model.BAMlocs(i,:)
-    polygonSides
-    proteinAddedNewInsertion
-    vertices = findVerticesNewMaterialCircle(model.BAMlocs(i,:),polygonSides,proteinAddedNewInsertion);
-    model.proteinVertices(:,:,i) = vertices;
-    
-    surfaceTensionPolygon(model.proteinVertices(:,:,1),dt)
-    
+% make a pretty plot (if requested)
+if plotYes == 1
+    figure;hold on;
+
+    visualiseSimple(model)
 end
-
-for i=1:size(model.LptDlocs,1)
-    vertices = findVerticesNewMaterial(model.LptDlocs(i,:),polygonSides,LPSAddedNewInsertion);
-    model.lpsVertices(:,:,i) = vertices;
-end
-
-%make a pretty plot
-figure;hold on;
-
-visualiseSimple(model)
 
 
 % while time is less than max time
@@ -109,7 +175,6 @@ while time < maxTime
     currentArea = initialArea*exp(sqrtGrowthRate*time);
     
     if newBamRandom < insRateBAM*dt*currentArea
-        disp(time)
         % if yes add a BAM to a new randomly chosen location
         
         newBAMloc = rand(1,2); % gives two uniform random numbers
@@ -138,6 +203,7 @@ while time < maxTime
         
         a = rand(1);
         
+        %if count == 4
         if a < insRateLptD*dt
             % we pick a random angle in [0,2pi)
             theta = rand(1)*2*pi;
@@ -242,7 +308,9 @@ while time < maxTime
             vertices = findVerticesNewMaterial(newBAMlocs(j,:),polygonSides,proteinAddedNewInsertion);
             model.proteinVertices(:,:,newBAMIndex) = vertices;
 
-            plot(newBAMlocs(j,1),newBAMlocs(j,2),'xk','linewidth',2)
+            if plotYes == 1
+                plot(newBAMlocs(j,1),newBAMlocs(j,2),'xk','linewidth',2)
+            end
            
         end
     end
@@ -263,7 +331,9 @@ while time < maxTime
             
             model.lpsVertices(:,:,newLptDIndex) = vertices;
 
-            plot(newLptDlocs(j,1),newLptDlocs(j,2),'dk','linewidth',2)
+            if plotYes == 1
+                plot(newLptDlocs(j,1),newLptDlocs(j,2),'dk','linewidth',2)
+            end
            
         end
     end
@@ -333,12 +403,14 @@ while time < maxTime
 
 end
 
-visualiseSimple(model)
+if plotYes == 1
+    visualiseSimple(model)
 
-figure;
-visualiseSimple(model)
+    figure;
+    visualiseSimple(model)
 
-visualise(model)
+    visualise(model)
+end
 
-%visualise(model);
-save('results.mat','model')
+
+save([saveLocation,'results.mat'],'model')
