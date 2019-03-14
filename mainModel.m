@@ -44,14 +44,17 @@ function mainModel(plotYes,settings,initPositions)
 
 % we can input either settings or both settings and initial positions
 
-if nargin < 2
+if nargin == 2
+    % we only have settings, not positions, so add the positions
+    
+elseif nargin < 2
     % first argument is settings always, this is all the data about
     % insertion rates and stuff
     
     settings.polygonSides = 251;
 
-    settings.membraneCircumference = pi; % um
-    settings.currentMaxLen = 2; %um
+    settings.membraneCircumference = 500*pi; % um
+    settings.currentMaxLen = 1000; %um
     settings.initialArea = settings.membraneCircumference*settings.currentMaxLen*2; % um^2
 
     settings.insRateProtein = 100; %um^2/s; estimate pi*0.0024*0.0024
@@ -67,7 +70,7 @@ if nargin < 2
 
     settings.time = 0;
     settings.dt = 0.01; %s
-    settings.maxTime = 0.1;
+    settings.maxTime = 0.03;
     
     settings.surfaceTensionFlag = 1;
 
@@ -75,8 +78,9 @@ if nargin < 2
     settings.LPSAddedNewInsertion = settings.insRateLPS*settings.dt;
     
     settings.saveLocation = '';
+end
 
-elseif nargin < 2
+if nargin < 2
     % we have the settings, but not the initial positions of BAM and LptD.
     % Set these positions now
     
@@ -107,12 +111,15 @@ end
 
 % set all the used parameters now, either to the values that were passed
 % (if nargin >= 1) or to the values set above (if nargin < 1)
+% we have to set the variables that are calculated from settings ones here
+% in case we passed in settings
 
 polygonSides = settings.polygonSides;
 
 membraneCircumference = settings.membraneCircumference; % um
 currentMaxLen = settings.currentMaxLen; %um
-initialArea = settings.initialArea; % um^2
+initialArea = settings.membraneCircumference*settings.currentMaxLen*2; % um^2
+settings.initialArea = initialArea;
 
 insRateProtein = settings.insRateProtein; %um^2/s; estimate pi*0.0024*0.0024
 insRateLPS = settings.insRateLPS; % per LptD
@@ -120,8 +127,10 @@ insRateLPS = settings.insRateLPS; % per LptD
 insRateBAM = settings.insRateBAM; %s^-1; estimate 7/60
 insRateLptD = settings.insRateLptD; % per BAM
 
-growthRate = settings.growthRate; % units I think um^2/s^2
-sqrtGrowthRate = settings.sqrtGrowthRate; % units I think um/s
+growthRate = settings.insRateLPS*settings.insRateLptD*settings.insRateBAM + settings.insRateProtein*settings.insRateBAM; % units I think um^2/s^2
+sqrtGrowthRate = sqrt(growthRate); % units I think um/s
+settings.growthRate = growthRate;
+settings.sqrtGrowthrate = sqrtGrowthRate;
 
 BAMsize = settings.BAMsize;
 
@@ -129,8 +138,13 @@ time = settings.time;
 dt = settings.dt; %s
 maxTime = settings.maxTime;
 
-proteinAddedNewInsertion = settings.proteinAddedNewInsertion;
-LPSAddedNewInsertion = settings.LPSAddedNewInsertion;
+proteinAddedNewInsertion = settings.insRateProtein*settings.dt;
+settings.proteinAddedNewInsertion = proteinAddedNewInsertion;
+
+LPSAddedNewInsertion = settings.insRateLPS*settings.dt;
+settings.LPSAddedNewInsertion = LPSAddedNewInsertion;
+
+saveLocation = settings.saveLocation;
 
 % all information will be saved in the model struct
 
@@ -147,9 +161,13 @@ model.settings = settings;
 
 % make a pretty plot (if requested)
 if plotYes == 1
-    figure;hold on;
+    fig = figure;
+    %hold on;
 
     visualiseSimple(model)
+    
+    saveas(fig,[saveLocation,'startPoint.png']);
+    close(fig);
 end
 
 
@@ -368,6 +386,11 @@ while time < maxTime
         
     end
     
+%     if mod(count,5) == 0
+%         visualiseSimple(model);
+%         savefig([saveLocation,'fig-it-',num2str(count),'.png'])
+%     end
+    
     
     % calculate anything you want to calculate
     
@@ -404,12 +427,14 @@ while time < maxTime
 end
 
 if plotYes == 1
-    visualiseSimple(model)
+    %visualiseSimple(model)
 
-    figure;
+    fig = figure;
     visualiseSimple(model)
+    
+    saveas(fig,[saveLocation,'endPoint.png']);
+    close(fig)
 
-    visualise(model)
 end
 
 
