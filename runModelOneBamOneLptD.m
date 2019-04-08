@@ -20,7 +20,7 @@ settings.currentMaxLen = 1000;
 settings.BAMsize = 1;
 settings.time = 0;
 settings.dt = 0.01;
-settings.maxTime = 0.02;
+settings.maxTime = 0.2;
 settings.surfaceTensionFlag = 1;
 
 % set up initial BAM locations
@@ -34,15 +34,15 @@ initPositions.BAMlocs = [[100,100]];
 % pi*r^2
 radius = 2;
 vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(1,:),settings.polygonSides,pi*radius^2);
-initPositions.proteinVertices(:,:,1) = vertices;
+initPositions.proteinVertices{1}(:,:) = vertices;
 
-for i = linspace(2,30,2)
+for i = linspace(4.1,4.1,1)
     % set up size of protein
     disp(i)
     
     radius = i;
     vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(1,:),settings.polygonSides,pi*radius^2);
-    initPositions.proteinVertices(:,:,1) = vertices;
+    initPositions.proteinVertices{1}(:,:) = vertices;
     
     % set up the settings that vary
     settings.insRateProtein = 10;
@@ -52,9 +52,9 @@ for i = linspace(2,30,2)
   
     settings.saveLocation = [bigSaveFolder,'/test-proteinInsertionRate',num2str(i)];
 
-    initPositions.LptDlocs = [101,100];
-    vertices = findVerticesNewMaterialCircle(initPositions.LptDlocs(1,:),settings.polygonSides,settings.insRateLPS*settings.dt);
-    initPositions.lpsVertices(:,:,1) = vertices;
+    initPositions.LptDlocs = [102,100];
+    vertices = findVerticesNewMaterialCircle(initPositions.LptDlocs(1,:),settings.polygonSides,pi);
+    initPositions.lpsVertices{1}(:,:) = vertices;
 
     % run the model with given settings
 

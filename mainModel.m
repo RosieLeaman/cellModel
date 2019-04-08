@@ -86,8 +86,9 @@ if nargin < 2
     
     initPositions.BAMlocs = [[0,0.5*pi]];
     initPositions.LptDlocs = [];
-    initPositions.proteinVertices = [];
-    initPositions.lpsVertices = NaN(settings.polygonSides,2);
+    initPositions.proteinVertices = {};
+    initPositions.lpsVertices = {};
+    %initPositions.lpsVertices = NaN(settings.polygonSides,2);
     
     % for all existing insertions add the corresponding material (note this
     % assumes one time step, if you want to skip you must pass the
@@ -96,7 +97,7 @@ if nargin < 2
     for i=1:size(initPositions.BAMlocs,1)
         initPositions.BAMlocs(i,:)
         vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(i,:),settings.polygonSides,settings.proteinAddedNewInsertion);
-        initPositions.proteinVertices(:,:,i) = vertices;
+        initPositions.proteinVertices{i} = vertices;
         
         % note here we need to use settings.xyz as the plain non
         % settings.xyz parameters are set after this if statement
@@ -104,7 +105,7 @@ if nargin < 2
 
     for i=1:size(initPositions.LptDlocs,1)
         vertices = findVerticesNewMaterial(initPositions.LptDlocs(i,:),settings.polygonSides,settings.LPSAddedNewInsertion);
-        initPositions.lpsVertices(:,:,i) = vertices;
+        initPositions.lpsVertices{i} = vertices;
     end
     
 end
@@ -173,7 +174,8 @@ end
 
 % while time is less than max time
 count = 0;
-while time < maxTime
+tooCloseFlag = 0;
+while time < maxTime && tooCloseFlag == 0
     count = count + 1;
 
     % we need to maintain a list of newly inserted insertion points, or at
@@ -244,28 +246,28 @@ while time < maxTime
 
     % move protein polygon vertices
     % have to loop through all polygons, then all pairs of vertices
-    for poly = 1:size(model.proteinVertices,3)
-        for j=1:size(model.proteinVertices(:,:,1),1)
+    for poly = 1:numel(model.proteinVertices)
+        for j=1:size(model.proteinVertices{poly},1)
 
-            flow = calcFlow(model.proteinVertices(j,:,poly),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(model.proteinVertices{poly}(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
             
-            newPos = findNewVertexPosition(model.proteinVertices(j,:,poly),flow,dt,membraneCircumference);
+            newPos = findNewVertexPosition(model.proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
             
-            model.proteinVertices(j,:,poly) = newPos;
+            model.proteinVertices{poly}(j,:) = newPos;
         end
     end
     
     % move lps polygon vertices
     % have to loop through all polygons, then all pairs of vertices
 
-    for poly = 1:size(model.lpsVertices,3)
-        for j=1:size(model.lpsVertices(:,:,1),1)
+    for poly = 1:numel(model.lpsVertices)
+        for j=1:size(model.lpsVertices{poly},1)
 
-            flow = calcFlow(model.lpsVertices(j,:,poly),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(model.lpsVertices{poly}(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
             
-            newPos = findNewVertexPosition(model.lpsVertices(j,:,poly),flow,dt,membraneCircumference);
+            newPos = findNewVertexPosition(model.lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
             
-            model.lpsVertices(j,:,poly) = newPos;
+            model.lpsVertices{poly}(j,:) = newPos;
         end
     end
     
@@ -324,7 +326,7 @@ while time < maxTime
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newBAMlocs,1)
             vertices = findVerticesNewMaterial(newBAMlocs(j,:),polygonSides,proteinAddedNewInsertion);
-            model.proteinVertices(:,:,newBAMIndex) = vertices;
+            model.proteinVertices{newBAMIndex}(:,:) = vertices;
 
             if plotYes == 1
                 plot(newBAMlocs(j,1),newBAMlocs(j,2),'xk','linewidth',2)
@@ -340,14 +342,15 @@ while time < maxTime
         for j=1:size(newLptDlocs,1)
             vertices = findVerticesNewMaterial(newLptDlocs(j,:),polygonSides,LPSAddedNewInsertion);
             
-            % test whether we already have some LPS vertices or not
-            if isnan(model.lpsVertices(1,1))
-                newLptDIndex = 1;
-            else
-                newLptDIndex = size(model.lpsVertices,3) + 1;
-            end
+%             % test whether we already have some LPS vertices or not
+%             if numel(model.lpsVertices) == 0
+%                 newLptDIndex = 1;
+%             else
+%                 newLptDIndex = numel(model.lpsVertices) + 1;
+%             end
             
-            model.lpsVertices(:,:,newLptDIndex) = vertices;
+            newLptDIndex = numel(model.lpsVertices) + 1;
+            model.lpsVertices{newLptDIndex}(:,:) = vertices;
 
             if plotYes == 1
                 plot(newLptDlocs(j,1),newLptDlocs(j,2),'dk','linewidth',2)
@@ -366,24 +369,31 @@ while time < maxTime
         
         % do protein first
         
-        for poly = 1:size(model.proteinVertices,3)
+        for poly = 1:numel(model.proteinVertices)
             
-            newPoints = surfaceTensionPolygon(model.proteinVertices(:,:,poly),dt);
+            newPoints = surfaceTensionPolygon(model.proteinVertices{poly}(:,:),dt);
             
-            model.proteinVertices(:,:,poly) = newPoints;
+            model.proteinVertices{poly}(:,:) = newPoints;
         end
         
         % then LPS, but only if lps vertices exist
         
-        if ~isempty(model.LptDlocs)
-            for poly = 1:size(model.lpsVertices,3)
+        if numel(model.LptDlocs) > 0
+            for poly = 1:numel(model.lpsVertices)
 
-                newPoints = surfaceTensionPolygon(model.lpsVertices(:,:,poly),dt);
+                newPoints = surfaceTensionPolygon(model.lpsVertices{poly}(:,:),dt);
 
-                model.lpsVertices(:,:,poly) = newPoints;
+                model.lpsVertices{poly}(:,:) = newPoints;
             end
         end
         
+    end
+    
+    % check for vertices being 'too close'
+    
+    problemVertices = checkPolygonDistances(model);
+    if numel(problemVertices) > 0
+        tooCloseFlag = 1;
     end
     
 %     if mod(count,5) == 0
@@ -432,7 +442,17 @@ if plotYes == 1
     fig = figure;
     visualiseSimple(model)
     
-    saveas(fig,[saveLocation,'endPoint.png']);
+    if tooCloseFlag == 1
+        for i=1:numel(problemVertices)
+            hold on;
+            plot(problemVertices{i}(:,1),problemVertices{i}(:,2),'ko');
+        end
+        title(['did not reach end, time is ',num2str(time)])
+        saveas(fig,[saveLocation,'endPoint-tooClose.png']);
+    else
+        title(['reached end, time is ',num2str(time)])
+        saveas(fig,[saveLocation,'endPoint.png']);
+    end
     close(fig)
 
 end
