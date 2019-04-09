@@ -143,8 +143,8 @@ ppvalY = spline(t,newVertices(:,2));
 % we need some new t query points
 firstSplit = N1-floor(N1/2)+1;
 secondSplit = N1+N2-floor(N1/2)+1;
-t2 = [1:(firstSplit-1),linspace(firstSplit,firstSplit+1,10)];
-t2 = [t2,firstSplit+2:secondSplit-1,linspace(secondSplit,secondSplit+1,10)];
+t2 = [1:(firstSplit-1),linspace(firstSplit,firstSplit+1,20)];
+t2 = [t2,firstSplit+2:secondSplit-1,linspace(secondSplit,secondSplit+1,20)];
 t2 = [t2,secondSplit+2:sizeNew];
 
 t2 = t2./(max(t2));
@@ -156,6 +156,41 @@ ppy = ppval(ppvalY,t2);
 hold on;
 plot(ppx,ppy,'ro-')
 
+% spline option 2
+
+xvals = newVertices(:,1);
+newXvals = [xvals(1:firstSplit-1);xvals(firstSplit)+0.5*(xvals(firstSplit+1)-xvals(firstSplit))];
+newXvals = [newXvals;xvals(firstSplit+2:secondSplit-1)];
+newXvals = [newXvals;xvals(secondSplit)+0.5*(xvals(secondSplit+1)-xvals(secondSplit))];
+newXvals = [newXvals;xvals(secondSplit+2:end)];
+
+yvals = newVertices(:,2);
+newYvals = [yvals(1:firstSplit-1);yvals(firstSplit)+0.5*(yvals(firstSplit+1)-yvals(firstSplit))];
+newYvals = [newYvals;yvals(firstSplit+2:secondSplit-1)];
+newYvals = [newYvals;yvals(secondSplit)+0.5*(yvals(secondSplit+1)-yvals(secondSplit))];
+newYvals = [newYvals;yvals(secondSplit+2:end)];
+
+% didn't divide by the number to make it between 0 to 1
+newt = 1:numel(newXvals);
+
+% get the x and y splines separately
+ppvalX = spline(newt,newXvals);
+ppvalY = spline(newt,newYvals);
+
+hold on;
+
+% we need some new t query points
+t2 = [1:(firstSplit-2),linspace(firstSplit-1,firstSplit+1,20)];
+t2 = [t2,firstSplit+2:secondSplit-3,linspace(secondSplit-2,secondSplit,20)];
+t2 = [t2,secondSplit+1:sizeNew];
+
+ 
+
+ppx = ppval(ppvalX,t2);
+ppy = ppval(ppvalY,t2);
+
+hold on;
+plot(ppx,ppy,'bd-')
 
 end
 
