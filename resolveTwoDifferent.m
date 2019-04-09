@@ -1,13 +1,33 @@
-% this takes in two sets of vertices marking boundaries of two polygons of 
-% the same type that are too close
+% this resolves the issues with a region interior to another reaching the
+% edge
 
-% This code ASSUMES that the two polygons are only close in ONE PLACE. It
-% WILL break if they are close in two places. It throws an error if this
-% occurs
+function newVertices = resolveTwoDifferent(vertices1,vertices2)
 
-function newVertices = resolveTwoSame(vertices1,vertices2)
+% first we have to work out which one is inside the other
+% this can be done by just testing one of the vertices from vertices1. If
+% it is inside vertices2 then vertices1 is interior and vertices2 is
+% exterior as they cannot intersect
 
-% first we have to find the problem vertices. We store their INDICES
+inside = pointInsidePolygon(vertices1(1,1),vertices1(1,2),{vertices2});
+
+% we will arrange it so that vertices2 is inside and vertices1 is outside
+
+if inside ~= 1
+    % if this is not currently the case we have to swap them
+    temp = vertices1;
+    vertices1 = vertices2;
+    vertices2 = temp;
+end
+
+% vertices1 will be edited to add the points from vertices2 and vertices2
+% will be deleted
+
+% the above should actually be removed and put elsewhere and we should make
+% the ASSUMPTION that the inputs are given to us ordered with vertices1
+% inside and vertices2 outside
+
+% now we can merrily go along on our usual approach. Same as resolveTwoSame
+% we first find the issues
 
 problemVertices1 = [];
 problemVertices2 = [];
@@ -44,7 +64,8 @@ end
 problemVertices1 = sort(problemVertices1);
 problemVertices2 = sort(problemVertices2);
 
-% check for errors
+% check that there is only one place where they are close
+
 test = diff(problemVertices1);
 if nnz(find(test>1)) > 1
     error('These polygons were close at two points, not 1')
@@ -54,9 +75,6 @@ test = diff(problemVertices2);
 if nnz(find(test>1)) > 1
     error('These polygons were close at two points, not 1')
 end
-
-% if we have no errors then let's continue
-% find not problematic vertices
 
 notProblemVertices1 = setdiff(1:size(vertices1,1),problemVertices1);
 notProblemVertices2 = setdiff(1:size(vertices2,1),problemVertices2);
@@ -100,7 +118,13 @@ end
 
 % we take the old vertices and whack them together in a new order
 
-newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2,:)];
+% in this case we have to reverse the order of the indices for vertices2
+notProblemIndices2Rev = fliplr(notProblemIndices2);
+
+notProblemIndices2
+notProblemIndices2Rev
+
+newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2Rev,:)];
 
 % we shuffle them round slightly so that the holes are not at the end of
 % the polygon (makes the spline bad right where we want it good)
