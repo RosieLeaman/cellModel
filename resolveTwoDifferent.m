@@ -1,7 +1,7 @@
 % this resolves the issues with a region interior to another reaching the
 % edge
 
-function newVertices = resolveTwoDifferent(vertices1,vertices2)
+function [newVertices,insideIndex] = resolveTwoDifferent(vertices1,vertices2,plotYes)
 
 % first we have to work out which one is inside the other
 % this can be done by just testing one of the vertices from vertices1. If
@@ -17,6 +17,9 @@ if inside ~= 1
     temp = vertices1;
     vertices1 = vertices2;
     vertices2 = temp;
+    insideIndex = 1;
+else
+    insideIndex = 2;
 end
 
 % vertices1 will be edited to add the points from vertices2 and vertices2
@@ -25,6 +28,8 @@ end
 % the above should actually be removed and put elsewhere and we should make
 % the ASSUMPTION that the inputs are given to us ordered with vertices1
 % inside and vertices2 outside
+
+% why should this be removed outside?
 
 % now we can merrily go along on our usual approach. Same as resolveTwoSame
 % we first find the issues
@@ -57,6 +62,13 @@ for i=1:size(vertices1,1)
             end
         end
     end
+end
+
+% have an escape here in case something has changed and there aren't any
+% issues any more
+
+if numel(problemVertices1) == 0
+    error('Something has gone wrong, these are not actually close')
 end
 
 % sort the two arrays
@@ -119,6 +131,7 @@ end
 % we take the old vertices and whack them together in a new order
 
 % in this case we have to reverse the order of the indices for vertices2
+% note this is the ONLY difference between this and resolveTwoSame
 notProblemIndices2Rev = fliplr(notProblemIndices2);
 
 newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2Rev,:)];
@@ -129,11 +142,6 @@ newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2Rev,:
 newIndices = shuffle(1:size(newVertices,1),floor(N1/2));
 newVertices = newVertices(newIndices,:);
 
-% a figure that can be removed if we do not want it
-figure;hold on;
-plot(vertices1(:,1),vertices1(:,2),'r-x')
-plot(vertices2(:,1),vertices2(:,2),'r-x')
-
 for i=1:numel(problemVertices1)
     plot(vertices1(problemVertices1(i),1),vertices1(problemVertices1(i),2),'b-o')
 end
@@ -141,43 +149,46 @@ for i=1:numel(problemVertices2)
     plot(vertices2(problemVertices2(i),1),vertices2(problemVertices2(i),2),'b-o')
 end
 
-plot(newVertices(:,1),newVertices(:,2),'k--x')
+% a figure that can be removed if we do not want it
+if plotYes == 1
+    figure;hold on;
+    plot(vertices1(:,1),vertices1(:,2),'r-x')
+    plot(vertices2(:,1),vertices2(:,2),'r-x')
+    plot(newVertices(:,1),newVertices(:,2),'k--x')
+end
+
 
 % now we want to whack a spline through all that.
 
-% new figure
 
-figure;
-plot(newVertices(:,1),newVertices(:,2),'k--x')
+% % first get the distances apart from each other
+% sizeNew = size(newVertices,1);
+% t = 1:sizeNew;
+% 
+% % normalise to [0,1]
+% t = t./(max(t));
+% 
+% % get the x and y splines separately
+% ppvalX = spline(t,newVertices(:,1));
+% ppvalY = spline(t,newVertices(:,2));
+% 
+% % we need some new t query points
+% firstSplit = N1-floor(N1/2)+1;
+% secondSplit = N1+N2-floor(N1/2)+1;
+% t2 = [1:(firstSplit-1),linspace(firstSplit,firstSplit+1,20)];
+% t2 = [t2,firstSplit+2:secondSplit-1,linspace(secondSplit,secondSplit+1,20)];
+% t2 = [t2,secondSplit+2:sizeNew];
+% 
+% t2 = t2./(max(t2));
+%  
+% 
+% ppx = ppval(ppvalX,t2);
+% ppy = ppval(ppvalY,t2);
+% 
+% hold on;
+% plot(ppx,ppy,'ro-')
 
-% first get the distances apart from each other
-sizeNew = size(newVertices,1);
-t = 1:sizeNew;
-
-% normalise to [0,1]
-t = t./(max(t));
-
-% get the x and y splines separately
-ppvalX = spline(t,newVertices(:,1));
-ppvalY = spline(t,newVertices(:,2));
-
-% we need some new t query points
-firstSplit = N1-floor(N1/2)+1;
-secondSplit = N1+N2-floor(N1/2)+1;
-t2 = [1:(firstSplit-1),linspace(firstSplit,firstSplit+1,20)];
-t2 = [t2,firstSplit+2:secondSplit-1,linspace(secondSplit,secondSplit+1,20)];
-t2 = [t2,secondSplit+2:sizeNew];
-
-t2 = t2./(max(t2));
- 
-
-ppx = ppval(ppvalX,t2);
-ppy = ppval(ppvalY,t2);
-
-hold on;
-plot(ppx,ppy,'ro-')
-
-% spline option 2
+% spline option 2 THIS OPTION IS USED
 
 xvals = newVertices(:,1);
 newXvals = [xvals(1:firstSplit-1);xvals(firstSplit)+0.5*(xvals(firstSplit+1)-xvals(firstSplit))];
@@ -198,20 +209,22 @@ newt = 1:numel(newXvals);
 ppvalX = spline(newt,newXvals);
 ppvalY = spline(newt,newYvals);
 
-hold on;
-
 % we need some new t query points
 t2 = [1:(firstSplit-2),linspace(firstSplit-1,firstSplit+1,20)];
 t2 = [t2,firstSplit+2:secondSplit-3,linspace(secondSplit-2,secondSplit,20)];
 t2 = [t2,secondSplit+1:sizeNew];
 
  
-
 ppx = ppval(ppvalX,t2);
 ppy = ppval(ppvalY,t2);
 
-hold on;
-plot(ppx,ppy,'bd-')
+% new figure
+if plotYes == 1
+    figure;
+    plot(newVertices(:,1),newVertices(:,2),'k--x')
+    hold on;
+    plot(ppx,ppy,'bd-')
+end
 
 end
 

@@ -5,7 +5,7 @@
 % WILL break if they are close in two places. It throws an error if this
 % occurs
 
-function newVertices = resolveTwoSame(vertices1,vertices2)
+function newVertices = resolveTwoSame(vertices1,vertices2,plotYes)
 
 % first we have to find the problem vertices. We store their INDICES
 
@@ -108,11 +108,6 @@ newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2,:)];
 newIndices = shuffle(1:size(newVertices,1),floor(N1/2));
 newVertices = newVertices(newIndices,:);
 
-% a figure that can be removed if we do not want it
-figure;hold on;
-plot(vertices1(:,1),vertices1(:,2),'r-x')
-plot(vertices2(:,1),vertices2(:,2),'r-x')
-
 for i=1:numel(problemVertices1)
     plot(vertices1(problemVertices1(i),1),vertices1(problemVertices1(i),2),'b-o')
 end
@@ -120,43 +115,44 @@ for i=1:numel(problemVertices2)
     plot(vertices2(problemVertices2(i),1),vertices2(problemVertices2(i),2),'b-o')
 end
 
-plot(newVertices(:,1),newVertices(:,2),'k--x')
+% a figure that can be removed if we do not want it
+if plotYes == 1
+    figure;hold on;
+    plot(vertices1(:,1),vertices1(:,2),'r-x')
+    plot(vertices2(:,1),vertices2(:,2),'r-x')
+    plot(newVertices(:,1),newVertices(:,2),'k--x')
+end
 
 % now we want to whack a spline through all that.
+% 
+% % first get the distances apart from each other
+% sizeNew = size(newVertices,1);
+% t = 1:sizeNew;
+% 
+% % normalise to [0,1]
+% t = t./(max(t));
+% 
+% % get the x and y splines separately
+% ppvalX = spline(t,newVertices(:,1));
+% ppvalY = spline(t,newVertices(:,2));
+% 
+% % we need some new t query points
+% firstSplit = N1-floor(N1/2)+1;
+% secondSplit = N1+N2-floor(N1/2)+1;
+% t2 = [1:(firstSplit-1),linspace(firstSplit,firstSplit+1,20)];
+% t2 = [t2,firstSplit+2:secondSplit-1,linspace(secondSplit,secondSplit+1,20)];
+% t2 = [t2,secondSplit+2:sizeNew];
+% 
+% t2 = t2./(max(t2));
+%  
+% 
+% ppx = ppval(ppvalX,t2);
+% ppy = ppval(ppvalY,t2);
+% 
+% hold on;
+% plot(ppx,ppy,'ro-')
 
-% new figure
-
-figure;
-plot(newVertices(:,1),newVertices(:,2),'k--x')
-
-% first get the distances apart from each other
-sizeNew = size(newVertices,1);
-t = 1:sizeNew;
-
-% normalise to [0,1]
-t = t./(max(t));
-
-% get the x and y splines separately
-ppvalX = spline(t,newVertices(:,1));
-ppvalY = spline(t,newVertices(:,2));
-
-% we need some new t query points
-firstSplit = N1-floor(N1/2)+1;
-secondSplit = N1+N2-floor(N1/2)+1;
-t2 = [1:(firstSplit-1),linspace(firstSplit,firstSplit+1,20)];
-t2 = [t2,firstSplit+2:secondSplit-1,linspace(secondSplit,secondSplit+1,20)];
-t2 = [t2,secondSplit+2:sizeNew];
-
-t2 = t2./(max(t2));
- 
-
-ppx = ppval(ppvalX,t2);
-ppy = ppval(ppvalY,t2);
-
-hold on;
-plot(ppx,ppy,'ro-')
-
-% spline option 2
+% spline option 2 THIS IS USED
 
 xvals = newVertices(:,1);
 newXvals = [xvals(1:firstSplit-1);xvals(firstSplit)+0.5*(xvals(firstSplit+1)-xvals(firstSplit))];
@@ -177,8 +173,6 @@ newt = 1:numel(newXvals);
 ppvalX = spline(newt,newXvals);
 ppvalY = spline(newt,newYvals);
 
-hold on;
-
 % we need some new t query points
 t2 = [1:(firstSplit-2),linspace(firstSplit-1,firstSplit+1,20)];
 t2 = [t2,firstSplit+2:secondSplit-3,linspace(secondSplit-2,secondSplit,20)];
@@ -189,8 +183,14 @@ t2 = [t2,secondSplit+1:sizeNew];
 ppx = ppval(ppvalX,t2);
 ppy = ppval(ppvalY,t2);
 
-hold on;
-plot(ppx,ppy,'bd-')
+% new figure
+
+if plotYes == 1
+    figure;
+    plot(newVertices(:,1),newVertices(:,2),'k--x')
+    hold on;
+    plot(ppx,ppy,'bd-')
+end
 
 end
 
