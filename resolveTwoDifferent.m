@@ -121,9 +121,6 @@ end
 % in this case we have to reverse the order of the indices for vertices2
 notProblemIndices2Rev = fliplr(notProblemIndices2);
 
-notProblemIndices2
-notProblemIndices2Rev
-
 newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2Rev,:)];
 
 % we shuffle them round slightly so that the holes are not at the end of
