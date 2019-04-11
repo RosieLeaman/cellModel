@@ -1,6 +1,8 @@
 % sort out issues with boundaries being too close
 % This returns a new model which is the same but with changed
 
+% This does not currently take in plotYes, it just doesn't plot (the zeros
+% in the calls to resolvexx or splitBlob need to be replaced by 1/plotYes)
 
 function newModel = resolveBoundaryIssues(model,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS)
 
@@ -28,15 +30,22 @@ for i=1:size(problemsProteinProtein,1)
     
     newModel.proteinVertices{j} = newVertices;
     newModel.proteinVertices{k} = newVertices;
-
-    if ~ismember(toBeChangedProtein,j)
+    
+    if numel(toBeChangedProtein) == 0
         toBeChangedProtein(indexProtein) = j;
-        indexProtein = indexProtein + 1;
-    end
-    if ~ismember(toBeChangedProtein,k)
         toBeChangedProtein(indexProtein+1) = k;
-        indexProtein = indexProtein + 1;
+        indexProtein = indexProtein + 2;
+    else
+        if ~ismember(toBeChangedProtein,j)
+            toBeChangedProtein(indexProtein) = j;
+            indexProtein = indexProtein + 1;
+        end
+        if ~ismember(toBeChangedProtein,k)
+            toBeChangedProtein(indexProtein+1) = k;
+            indexProtein = indexProtein + 1;
+        end       
     end
+    
      
 end
 
@@ -59,13 +68,19 @@ for i=1:size(problemsLPSLPS,1)
     newModel.lpsVertices{j} = newVertices;
     newModel.lpsVertices{k} = newVertices;
 
-    if ~ismember(toBeChangedLPS,j)
+    if numel(toBeChangedLPS) == 0
         toBeChangedLPS(indexLPS) = j;
-        indexLPS = indexLPS + 1;
-    end
-    if ~ismember(toBeChangedLPS,k)
         toBeChangedLPS(indexLPS+1) = k;
-        indexLPS = indexLPS + 1;
+        indexLPS = indexLPS + 2;
+    else
+        if ~ismember(toBeChangedLPS,j)
+            toBeChangedLPS(indexLPS) = j;
+            indexLPS = indexLPS + 1;
+        end
+        if ~ismember(toBeChangedLPS,k)
+            toBeChangedLPS(indexLPS+1) = k;
+            indexLPS = indexLPS + 1;
+        end
     end
 
 end
@@ -106,6 +121,7 @@ end
 newVerticesProtein = {};
 
 index = 1;
+
 for i=1:numel(problemsProtein)
     j = problemsProtein(i);
     
@@ -161,8 +177,9 @@ for i=1:numel(toBeChangedProtein)
         vertices2 = newModel.proteinVertices{toBeChangedProtein(j)};
         eq = checkEqualityMatrices(vertices1,vertices2);
         % if j is being deleted anyway can't delete i
-        if eq == 1 && ~ismember(haveToBeDeletedProtein,j)
-            if ~ismember(haveToBeDeletedProtein,i)
+        
+        if eq == 1 && ~contained(j,haveToBeDeletedProtein)
+            if ~contained(i,haveToBeDeletedProtein)
                 haveToBeDeletedProtein(index) = i;
                 index = index + 1;
                 break
@@ -184,8 +201,8 @@ for i=1:numel(toBeChangedLPS)
         vertices2 = newModel.lpsVertices{toBeChangedLPS(j)};
         eq = checkEqualityMatrices(vertices1,vertices2);
         % if j is being deleted anyway can't delete i
-        if eq == 1 && ~ismember(haveToBeDeletedLPS,j)
-            if ~ismember(haveToBeDeletedLPS,i)
+        if eq == 1 && ~contained(j,haveToBeDeletedLPS)
+            if ~contained(i,haveToBeDeletedLPS)
                 haveToBeDeletedLPS(index) = i;
                 index = index + 1;
                 break
@@ -199,19 +216,35 @@ end
 % now we can delete everything in haveToBeDeleted and we should have no
 % copies
 
+haveToBeDeletedLPS
+
 newModel.proteinVertices(haveToBeDeletedProtein) = [];
 newModel.lpsVertices(haveToBeDeletedLPS) = [];
 
 % finally we add in the new regions
 
-index = numel(newModel.proteinVertices);
+index = numel(newModel.proteinVertices)+1;
+
 for i=1:numel(newVerticesProtein)
     newModel.proteinVertices{index} = newVerticesProtein{i};
     index = index + 1;
 end
 
-index = numel(newModel.lpsVertices);
+index = numel(newModel.lpsVertices)+1;
 for i=1:numel(newVerticesLPS)
     newModel.lpsVertices{index} = newVerticesLPS{i};
     index = index + 1;
+end
+
+end
+
+% this tells us if a value is contained within an array and doesn't have
+% issues with empty arrays
+function result = contained(element,array)
+    
+    if numel(array) == 0
+        result = 0;
+        return
+    end
+    result = ismember(array,element);
 end

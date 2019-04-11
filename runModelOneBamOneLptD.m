@@ -20,7 +20,7 @@ settings.currentMaxLen = 1000;
 settings.BAMsize = 1;
 settings.time = 0;
 settings.dt = 0.01;
-settings.maxTime = 0.2;
+settings.maxTime = 1;
 settings.surfaceTensionFlag = 1;
 
 % set up initial BAM locations
@@ -32,7 +32,7 @@ initPositions.BAMlocs = [[100,100]];
 
 % the amount of material determines the size of the circle as amount =
 % pi*r^2
-radius = 2;
+radius = 6;
 vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(1,:),settings.polygonSides,pi*radius^2);
 initPositions.proteinVertices{1}(:,:) = vertices;
 
@@ -40,13 +40,13 @@ for i = linspace(4.1,4.1,1)
     % set up size of protein
     disp(i)
     
-    radius = i;
+    radius = 6;
     vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(1,:),settings.polygonSides,pi*radius^2);
     initPositions.proteinVertices{1}(:,:) = vertices;
     
     % set up the settings that vary
     settings.insRateProtein = 10;
-    settings.insRateLPS = 10;
+    settings.insRateLPS = 20;
     settings.insRateBAM = 0;
     settings.insRateLptD = 0;
   

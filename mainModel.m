@@ -174,8 +174,7 @@ end
 
 % while time is less than max time
 count = 0;
-tooCloseFlag = 0;
-while time < maxTime && tooCloseFlag == 0
+while time < maxTime
     count = count + 1;
 
     % we need to maintain a list of newly inserted insertion points, or at
@@ -390,16 +389,50 @@ while time < maxTime && tooCloseFlag == 0
     end
     
     % check for vertices being 'too close'
-    
-    problemVertices = checkPolygonDistances(model);
-    if numel(problemVertices) > 0
-        tooCloseFlag = 1;
+    % note that the variable 'tooClose', here set to 1, should be replaced
+    % at some point to become a model parameter
+    [problemFlag,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS] = checkPolygonDistances(model,1);
+
+    if problemFlag == 1
+        disp('we have located a problem')
+        % we have regions that are too close
+        % snap a picture
+        if plotYes == 1
+            fig = figure;
+            visualiseSimple(model)
+            
+            title(['some regions are too close',num2str(time)])
+            saveas(fig,[saveLocation,'tooClose-it',num2str(count),'.png']);
+            %close(fig)
+        end
+        
+        % resolve the issues
+        
+        newModel = resolveBoundaryIssues(model,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS);
+        
+        % replace the model with the new vertices
+        model = newModel;
+        
+        % take a new picture of the resolution
+        
+        if plotYes == 1
+            fig = figure;
+            visualiseSimple(model)
+            
+            title(['resolution',num2str(time)])
+            saveas(fig,[saveLocation,'resolution-it',num2str(count),'.png']);
+            %close(fig)
+        end
+        
     end
     
-%     if mod(count,5) == 0
-%         visualiseSimple(model);
-%         savefig([saveLocation,'fig-it-',num2str(count),'.png'])
-%     end
+    if mod(count,10) == 0
+        fig = figure;
+        visualiseSimple(model);
+        title(['time is ',num2str(time)])
+        saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
+        %close(fig)
+    end
     
     
     % calculate anything you want to calculate
@@ -441,19 +474,11 @@ if plotYes == 1
 
     fig = figure;
     visualiseSimple(model)
-    
-    if tooCloseFlag == 1
-        for i=1:numel(problemVertices)
-            hold on;
-            plot(problemVertices{i}(:,1),problemVertices{i}(:,2),'ko');
-        end
-        title(['did not reach end, time is ',num2str(time)])
-        saveas(fig,[saveLocation,'endPoint-tooClose.png']);
-    else
-        title(['reached end, time is ',num2str(time)])
-        saveas(fig,[saveLocation,'endPoint.png']);
-    end
-    close(fig)
+
+    title(['reached end, time is ',num2str(time)])
+    saveas(fig,[saveLocation,'endPoint.png']);
+
+    %close(fig)
 
 end
 

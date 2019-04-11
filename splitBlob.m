@@ -146,6 +146,10 @@ if plotYes == 1
     plot(ppx2,ppy2,'kx-')
 end
 
+% ACTUALLY ASSIGN THE NEW VERTICES
+newVertices1 =  [ppx1',ppy1'];
+newVertices2 = [ppx2',ppy2'];
+
 end
 
 % this is a helpful function

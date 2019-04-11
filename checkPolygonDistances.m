@@ -100,12 +100,22 @@ for proteinBlob = 1:numel(model.proteinVertices)
             % check if they are near as the crow flies
             if findDist(x,y) < 1
                 % but also far around the polygon
-                if findDistRoundPolygon(i,j,model.proteinVertices{proteinBlob}) > 2
-                    problemFlag = 1;
-                    problemsProtein(index) = proteinBlob;
-                    index = index + 1;
-                    finished = 1;
-                    break
+                if findDistRoundPolygon(i,j,model.proteinVertices{proteinBlob}) > 2*pi
+                    % but also, we need to check whether the part of the
+                    % polygon between the two points in inside or outside
+                    % the polygon. Outside is no problem
+                    
+                    % had to change this to checking a whole line, not just
+                    % one point as there were issues with overhangs
+                    inside = checkLineInPolygon(x,y,model.proteinVertices{proteinBlob});
+                    if inside == 1
+                        %disp('found a sketch')
+                        problemFlag = 1;
+                        problemsProtein(index) = proteinBlob;
+                        index = index + 1;
+                        finished = 1;
+                        break
+                    end
                 end
             end
         end
@@ -126,11 +136,17 @@ for lpsBlob = 1:numel(model.lpsVertices)
             if findDist(x,y) < 1
                 % but also far around the polygon
                 if findDistRoundPolygon(i,j,model.lpsVertices{lpsBlob}) > 2
-                    problemFlag = 1;
-                    problemsLPS(index) = lpsBlob;
-                    index = index + 1;
-                    finished = 1; % need an extra count so can break out of the other for loop too
-                    break
+                    % but also, we need to check whether the part of the
+                    % polygon between the two points in inside or outside
+                    % the polygon. Outside is no problem
+                    inside = checkLineInPolygon(x,y,model.lpsVertices{lpsBlob});
+                    if inside == 1
+                        problemFlag = 1;
+                        problemsLPS(index) = lpsBlob;
+                        index = index + 1;
+                        finished = 1; % need an extra count so can break out of the other for loop too
+                        break
+                    end
                 end
             end
         end

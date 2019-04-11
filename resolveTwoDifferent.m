@@ -4,11 +4,21 @@
 function [newVertices,insideIndex] = resolveTwoDifferent(vertices1,vertices2,plotYes)
 
 % first we have to work out which one is inside the other
-% this can be done by just testing one of the vertices from vertices1. If
-% it is inside vertices2 then vertices1 is interior and vertices2 is
-% exterior as they cannot intersect
+% this could not be done using pointInPolygon. It can be done using mins
+% and maxes
 
-inside = pointInsidePolygon(vertices1(1,1),vertices1(1,2),{vertices2});
+max1 = max(vertices1(:,1));
+min1 = min(vertices1(:,1));
+max2 = max(vertices2(:,1));
+min2 = min(vertices2(:,1));
+
+% test if vertices2 are inside vertices 1
+
+if min2 > min1 && max2 < max1
+    inside = 1;
+else
+    inside = 0;
+end
 
 % we will arrange it so that vertices2 is inside and vertices1 is outside
 
@@ -18,8 +28,10 @@ if inside ~= 1
     vertices1 = vertices2;
     vertices2 = temp;
     insideIndex = 1;
+    disp('deleting protein')
 else
     insideIndex = 2;
+    disp('deleting lps')
 end
 
 % vertices1 will be edited to add the points from vertices2 and vertices2
@@ -190,6 +202,10 @@ end
 
 % spline option 2 THIS OPTION IS USED
 
+firstSplit = N1-floor(N1/2)+1;
+secondSplit = N1+N2-floor(N1/2)+1;
+sizeNew = size(newVertices,1);
+
 xvals = newVertices(:,1);
 newXvals = [xvals(1:firstSplit-1);xvals(firstSplit)+0.5*(xvals(firstSplit+1)-xvals(firstSplit))];
 newXvals = [newXvals;xvals(firstSplit+2:secondSplit-1)];
@@ -225,6 +241,12 @@ if plotYes == 1
     hold on;
     plot(ppx,ppy,'bd-')
 end
+
+% ACTUALLY ASSIGN THE VERTICES
+
+newVertices = [ppx',ppy'];
+
+size(newVertices)
 
 end
 

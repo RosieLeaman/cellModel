@@ -108,16 +108,15 @@ newVertices = [vertices1(notProblemIndices1,:);vertices2(notProblemIndices2,:)];
 newIndices = shuffle(1:size(newVertices,1),floor(N1/2));
 newVertices = newVertices(newIndices,:);
 
-for i=1:numel(problemVertices1)
-    plot(vertices1(problemVertices1(i),1),vertices1(problemVertices1(i),2),'b-o')
-end
-for i=1:numel(problemVertices2)
-    plot(vertices2(problemVertices2(i),1),vertices2(problemVertices2(i),2),'b-o')
-end
-
 % a figure that can be removed if we do not want it
 if plotYes == 1
     figure;hold on;
+    for i=1:numel(problemVertices1)
+        plot(vertices1(problemVertices1(i),1),vertices1(problemVertices1(i),2),'b-o')
+    end
+    for i=1:numel(problemVertices2)
+        plot(vertices2(problemVertices2(i),1),vertices2(problemVertices2(i),2),'b-o')
+    end
     plot(vertices1(:,1),vertices1(:,2),'r-x')
     plot(vertices2(:,1),vertices2(:,2),'r-x')
     plot(newVertices(:,1),newVertices(:,2),'k--x')
@@ -153,6 +152,10 @@ end
 % plot(ppx,ppy,'ro-')
 
 % spline option 2 THIS IS USED
+
+firstSplit = N1-floor(N1/2)+1;
+secondSplit = N1+N2-floor(N1/2)+1;
+sizeNew = size(newVertices,1);
 
 xvals = newVertices(:,1);
 newXvals = [xvals(1:firstSplit-1);xvals(firstSplit)+0.5*(xvals(firstSplit+1)-xvals(firstSplit))];
@@ -191,6 +194,10 @@ if plotYes == 1
     hold on;
     plot(ppx,ppy,'bd-')
 end
+
+% ACTUALLY ASSIGN THE VERTICES
+
+newVertices = [ppx',ppy'];
 
 end
 
