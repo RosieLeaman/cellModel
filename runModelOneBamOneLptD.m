@@ -20,7 +20,7 @@ settings.currentMaxLen = 1000;
 settings.BAMsize = 1;
 settings.time = 0;
 settings.dt = 0.01;
-settings.maxTime = 1;
+settings.maxTime = 2;
 settings.surfaceTensionFlag = 1;
 
 % set up initial BAM locations

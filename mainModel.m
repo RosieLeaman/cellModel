@@ -403,7 +403,7 @@ while time < maxTime
             
             title(['some regions are too close',num2str(time)])
             saveas(fig,[saveLocation,'tooClose-it',num2str(count),'.png']);
-            %close(fig)
+            close(fig)
         end
         
         % resolve the issues
@@ -421,7 +421,7 @@ while time < maxTime
             
             title(['resolution',num2str(time)])
             saveas(fig,[saveLocation,'resolution-it',num2str(count),'.png']);
-            %close(fig)
+            close(fig)
         end
         
     end
@@ -431,7 +431,7 @@ while time < maxTime
         visualiseSimple(model);
         title(['time is ',num2str(time)])
         saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
-        %close(fig)
+        close(fig)
     end
     
     
@@ -478,7 +478,7 @@ if plotYes == 1
     title(['reached end, time is ',num2str(time)])
     saveas(fig,[saveLocation,'endPoint.png']);
 
-    %close(fig)
+    close(fig)
 
 end
 
