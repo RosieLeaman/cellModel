@@ -47,12 +47,12 @@ problemVertices2 = sort(problemVertices2);
 % check for errors
 test = diff(problemVertices1);
 if nnz(find(test>1)) > 1
-    error('These polygons were close at two points, not 1')
+    error('TwoSame:CloseTwoPoints','These polygons were close at two points, not 1')
 end
 
 test = diff(problemVertices2);
 if nnz(find(test>1)) > 1
-    error('These polygons were close at two points, not 1')
+    error('TwoSame:CloseTwoPoints','These polygons were close at two points, not 1')
 end
 
 % if we have no errors then let's continue

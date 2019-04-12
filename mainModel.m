@@ -47,6 +47,8 @@ function mainModel(plotYes,settings,initPositions)
 if nargin == 2
     % we only have settings, not positions, so add the positions
     
+    error('line 50 this code is not written')
+    
 elseif nargin < 2
     % first argument is settings always, this is all the data about
     % insertion rates and stuff
@@ -174,7 +176,8 @@ end
 
 % while time is less than max time
 count = 0;
-while time < maxTime
+prematureEnd = 0;
+while time < maxTime && prematureEnd == 0
     count = count + 1;
 
     % we need to maintain a list of newly inserted insertion points, or at
@@ -408,10 +411,15 @@ while time < maxTime
         
         % resolve the issues
         
-        newModel = resolveBoundaryIssues(model,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS);
-        
-        % replace the model with the new vertices
-        model = newModel;
+        try
+            newModel = resolveBoundaryIssues(model,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS);
+            
+            % replace the model with the new vertices
+            model = newModel;
+        catch
+            disp('There was an error')
+            prematureEnd = 1;
+        end
         
         % take a new picture of the resolution
         
