@@ -11,8 +11,8 @@ angles = zeros(vertices,1);
 index = 0;
 while index < vertices
     theta = 0 + (2*pi*index)/vertices;
-    points(index+1,1) = cos(theta);
-    points(index+1,2) = sin(theta);
+    points(index+1,1) = 20*cos(theta);
+    points(index+1,2) = 2*sin(theta);
     angles(index+1) = theta;
     index = index + 1;
 end
@@ -25,26 +25,30 @@ newPoints = points;
 % for a certain length of time
 
 time = 0;
-maxTime = 0.3;
+maxTime = 0.2; % 0.3
 dt = 0.01;
 
 % errors!
 
 error = 0;
 
-figure;
-plot(points(:,1),points(:,2),'x-');
-xlim([-2.2,2.2]);ylim([-2.2,2.2]);
-hold on;
-
-%pause();
-
 count = 0;
 idx = 1;
 
+fig = figure;
+plot(points(:,1),points(:,2),'x');
+% xlim([-5,5]);ylim([90,100]);
+
+frame = getframe(fig);
+im{idx} = frame2im(frame);
+idx = idx + 1;
+%close(fig)
+
 disp('starting loop')
 
+
 uns = zeros(vertices,1);
+flows = zeros(vertices,2);
 
 %while time < maxTime
 while count < 1
@@ -77,24 +81,45 @@ while count < 1
         % find the flow strength
         
         if ii < (halfway/2)
+            if ii==1
+                disp('first case')
+                calculateIntegral(points(ii,:),normals(ii,:),splineX2,splineY2,1)
+            end
             % because we shifted the points round to get the second spline
             % the index for the new normals in normals2 is not the same as
             % the normal index but is shifted
             correctNormalIndex = size(points2halfway,1)-halfway+ii;
-            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2);
+            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,0);
         elseif size(points,1) - ii < (halfway/2)
+            if ii==1
+                disp('second case')
+                calculateIntegral(points(ii,:),normals(ii,:),splineX2,splineY2,1)
+            end
             % is this correctNormalIndex correct???? CHECK
             correctNormalIndex = ii - halfway + 1;
-            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2);            
-        else        
-            un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY);
-            if ii==2
-                t = linspace(0,1,500);
-                integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX,splineY);
-                figure;
-                plot(t,integrand);
-                title('integrand point2')
+            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,0);            
+        else   
+            if ii==1
+                disp('third case')
+                calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,1)
             end
+            un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0);
+        end
+        
+%         if mod(ii,20) == 0
+%             t = linspace(0,1,500);
+%             integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX,splineY,0);
+%             figure;
+%             plot(t,integrand);
+%             title(['integrand point ',num2str(ii)])
+%         end
+
+        if ii==1
+            t = linspace(0,1,100);
+            integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX2,splineY2,1);
+            figure;
+            plot(t,integrand);
+            title(['integrand point (',num2str(points(ii,1)),',',num2str(points(ii,2)),')'])
         end
         
         uns(ii) = un;
@@ -102,7 +127,8 @@ while count < 1
         % this has to be applied in the direction of the outward pointing
         % normal
         
-        flow = -un.*normals(ii,:);
+        flow = -(25*un).*normals(ii,:);
+        flows(ii,:) = flow;
 
         % move that point by how much
         
@@ -111,21 +137,23 @@ while count < 1
         errors(ii) = findDist(points(ii,:),newPoints(ii,:));
       
     end
-    
+
     % the error is just un actually
     error = mean(errors);
     
     points = newPoints;  
     
     
-    if mod(count,3) == 0
+    if mod(count,10) == 0
+    %if 1
         fig = figure;
         plot(points(:,1),points(:,2),'x');
-        xlim([-2.2,2.2]);ylim([-2.2,2.2]);
+        xlim([-5,5]);ylim([90,100]);
         
         frame = getframe(fig);
         im{idx} = frame2im(frame);
         idx = idx + 1;
+        close(fig)
     end
     
      
@@ -133,9 +161,9 @@ while count < 1
     
 %     figure;
 %     plot(angles,uns)
-%     
-    figure;
-    plot(angles,errors,'x-')
+% %     
+%     figure;
+%     plot(angles,errors,'x-')
     
 %     figure;
 %     plot(angles,abs(cos(angles)-normals(1:end-1,1)))
@@ -147,22 +175,55 @@ while count < 1
 
 end
 
-% saveLocation = 'testCircle.tif';
-% imwrite(im{1},saveLocation)
-% for i=2:numel(im)
-%     imwrite(im{i},saveLocation,'WriteMode','append')
-% end
+saveLocation = 'testEllipse.tif';
+imwrite(im{1},saveLocation)
+for i=2:numel(im)
+    imwrite(im{i},saveLocation,'WriteMode','append')
+end
 
 end
 
-function result = calculateIntegral(r0,r0normal,splineX,splineY)
+function result = calculateIntegral(r0,r0normal,splineX,splineY,plotYes)
 
 % we will be returning un
 
 % we want to use integral. So we need a function handle.
 
-fun = @(t)calcIntegrandVectorised(t,r0,r0normal,splineX,splineY);
+fun = @(t)calcIntegrandVectorised(t,r0,r0normal,splineX,splineY,plotYes);
 
 result = integral(fun,0,1);
 
+end
+
+% this is a helpful function
+function previous = prev(x,maxi)
+    if x > 1
+        previous = x - 1;
+    else
+        previous = maxi;
+    end  
+end
+
+function following = next(x,maxi)
+    if x < maxi
+        following = x + 1;
+    else
+        following = 1;
+    end  
+end
+
+% produces the indices of the next N numbers going in a circle
+function following = nextN(x,maxi,N)
+    following = zeros(1,N);
+    following(1) = x;
+    for i=2:N
+        following(i) = next(following(i-1),maxi);
+    end
+
+end
+
+% shuffle the numbers in the 1xm list along by N, so that result(1) =
+% list(N)
+function result = shuffle(list,N)
+    result = nextN(N,numel(list),numel(list));
 end

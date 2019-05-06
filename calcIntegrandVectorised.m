@@ -1,4 +1,4 @@
-function integrands = calcIntegrandVectorised(t,r0,r0normal,splineX,splineY)
+function integrands = calcIntegrandVectorised(t,r0,r0normal,splineX,splineY,plotYes)
 
 % we want to return the integrand at every point p(t)
 
@@ -30,16 +30,34 @@ end
 % then we can work out the integrand easy
 
 integrands = zeros(1,numel(t));
+integrandsX = zeros(1,numel(t));
+integrandsY = zeros(1,numel(t));
 
 for i=1:numel(integrands)
-    [integrandX,integrandY] = calcIntegrand(r0,points(i,:),tangents(i,:));
+    [integrandX,integrandY] = calcIntegrand(r0,points(i,:),tangents(i,:),plotYes);
     
     integrands(i) = integrandX*r0normal(1) + integrandY*r0normal(2);
+    integrandsX(i) = integrandX;
+    integrandsY(i) = integrandY;
+end
+
+if plotYes==1
+    integrandsX
+    integrandsY
+    points(1,:)
+    points(3,:)-r0
+    figure;
+    plot(points(:,1),points(:,2),'x')
+    figure;
+    subplot(1,2,1)
+    plot(points(:,1),integrandsX,'x-')
+    subplot(1,2,2)
+    plot(points(:,2),integrandsY,'x-')
 end
 
 end
 
-function [integrandX,integrandY] = calcIntegrand(r0,rs,t)
+function [integrandX,integrandY] = calcIntegrand(r0,rs,t,plotYes)
 
 dr = rs - r0;
 
@@ -50,7 +68,6 @@ Jexpression = calcJexpression(dr(1),dr(2),t(1),t(2));
 integrandX = (dr(1)/(square.^2))*Jexpression;
 
 integrandY = (dr(2)/(square.^2))*Jexpression;
-
 
 end
 

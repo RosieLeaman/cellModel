@@ -58,7 +58,8 @@ for ii = 1:size(points,1)
     
     % why is this minused?
 
-    flow = -un.*normals(ii,:);
+    %flow = -un.*normals(ii,:);
+    flow = -10*un.*normals(ii,:);
 
     % move that point by how much
 
