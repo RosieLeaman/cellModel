@@ -1,4 +1,4 @@
-function [normals,tangents,ppvalX,ppvalY] = findTangentSpline(x,unit)
+function [normals,tangents,ppvalX,ppvalY,totalDistAround] = findTangentSpline(x,unit)
 
 % first get the distances apart from each other
 t = zeros(size(x,1),1);
@@ -6,8 +6,11 @@ for i=2:numel(t)
     t(i) = t(i-1) + findDist(x(i,:),x(i-1,:));
 end
 
-% normalise to [0,1]
-t = t./(max(t));
+% DO NOT NORMALISE. THIS MESSES UP DERIVATIVES LATER.
+% % normalise to [0,1]
+% t = t./(max(t));
+
+totalDistAround = t(end);
 
 % get the x and y splines separately
 ppvalX = spline(t,x(:,1));
@@ -37,7 +40,8 @@ end
 normals = zeros(size(x,1),2);
 
 for i=1:size(tangents,1)
-    normals(i,:) = [tangents(i,2),-tangents(i,1)];
+    % this is the OUTWARD POINTING NORMAL
+    normals(i,:) = [-tangents(i,2),tangents(i,1)];
 end
 
 % figure;
