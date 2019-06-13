@@ -12,7 +12,7 @@ if nargin < 1
     numVertices = 51;
 end
 
-a = 4; % x axis stretch
+a = 20; % x axis stretch
 b = 2; % y axis stretch
 
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
@@ -53,7 +53,8 @@ while count < 1
     % alternative, wrap around our polygon three times
     points2 = [points;points;points];
     
-    [wholeNormals,wholeTangents,splineX,splineY] = findTangentSpline(points2,1);
+    [splineX,splineY] = fitSpline(points2);
+    [wholeTangents,wholeNormals] = findTangentFromSplines(splineX.breaks,splineX,splineY,1);
     
     % the above gives us normals and tangents for each point going around
     % the polygon three times. Just select out the middle bit that we
@@ -71,8 +72,8 @@ while count < 1
     % test the tangent is close to accurate
     % the analytical unit tangent should be for an ellipse
     % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
-    
-    x = linspace(0,2*pi*(1-1/numVertices),1000);
+
+    x = linspace(0,2*pi*(1-1/numVertices),numVertices);
     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
@@ -88,8 +89,8 @@ while count < 1
 
         if ii==1
             disp('doing some checks')
-            correctNormalIndex = size(points2halfway,1)-halfway+ii;
             t = linspace(0,1,10000);
+            
             integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX,splineY,1,1,a,b);
         end
         
