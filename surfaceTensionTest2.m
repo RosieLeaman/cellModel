@@ -72,12 +72,9 @@ while count < 1
     % the analytical unit tangent should be for an ellipse
     % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
     
-    % NOTE: in the assertion here we need to pick the RIGHT part of
-    % tangents. This would be easier if we selected it above.
-    
     x = linspace(0,2*pi*(1-1/numVertices),1000);
-    assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(size(points,1)+1:size(points,1)*2,1)')) < 10e-14,'Estimated tangent x component not close to correct')
-    assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(size(points,1)+1:size(points,1)*2,2)')) < 10e-14,'Estimated tangent y component not close to correct')
+    assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
+    assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
     % we then iterate over each point in the circle
     %for ii = 1:size(points,1)
@@ -119,7 +116,6 @@ while count < 1
     points = newPoints;  
     
     if mod(count,10) == 0
-    %if 1
         im = addFrameToTiff(im,points,xmax,ymax,1);
     end
     
@@ -169,39 +165,6 @@ fun5Alt = @(t) (a*(a^2*sin(t).^2 + b^2*cos(t).^2).^(1/2).*(cos(t) - 1).*((a^2.*s
 
 actualIntegral = integral(fun5Alt,0,2*pi)
 
-end
-
-% this is a helpful function
-function previous = prev(x,maxi)
-    if x > 1
-        previous = x - 1;
-    else
-        previous = maxi;
-    end  
-end
-
-function following = next(x,maxi)
-    if x < maxi
-        following = x + 1;
-    else
-        following = 1;
-    end  
-end
-
-% produces the indices of the next N numbers going in a circle
-function following = nextN(x,maxi,N)
-    following = zeros(1,N);
-    following(1) = x;
-    for i=2:N
-        following(i) = next(following(i-1),maxi);
-    end
-
-end
-
-% shuffle the numbers in the 1xm list along by N, so that result(1) =
-% list(N)
-function result = shuffle(list,N)
-    result = nextN(N,numel(list),numel(list));
 end
 
 function [image] = addFrameToTiff(image,points,xmax,ymax,closeFrameYes)
