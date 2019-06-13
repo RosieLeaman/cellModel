@@ -35,6 +35,7 @@ for i=1:numel(integrands)
     % save these, remembering to multiply the integrand by |ds|
     absDs = sqrt(tangents(i,1)^2+tangents(i,2)^2);
     ds(i) = absDs;
+    
     %absDs = 1;
     
     integrandsX(i) = integrandX*absDs;
