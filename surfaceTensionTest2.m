@@ -53,7 +53,13 @@ while count < 1
     % alternative, wrap around our polygon three times
     points2 = [points;points;points];
     
-    [normals,tangents,splineX,splineY] = findTangentSpline(points2,1);
+    [wholeNormals,wholeTangents,splineX,splineY] = findTangentSpline(points2,1);
+    
+    % the above gives us normals and tangents for each point going around
+    % the polygon three times. Just select out the middle bit that we
+    % actually want here
+    normals = wholeNormals(size(points,1)+1:size(points,1)*2,:);
+    tangents = wholeTangents(size(points,1)+1:size(points,1)*2,:);
     
     xPoints = ppval(splineX,linspace(0,1-1/numVertices,numVertices))';
     yPoints = ppval(splineY,linspace(0,1-1/numVertices,numVertices))';
@@ -66,43 +72,13 @@ while count < 1
     % the analytical unit tangent should be for an ellipse
     % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
     
-    correctTangent = zeros(size(points));
-    correctTangentUnit = zeros(size(points));
-    for i=1:size(points,1)
-        correctTangent(i,1) = -(a/b)*points(i,2);
-        correctTangent(i,2) = (b/a)*points(i,1);       
-        
-        tangentNorm = norm(correctTangent(i,:));
-        tangentNorm = sqrt(correctTangent(i,1)^2+correctTangent(i,2)^2);
-        
-        correctTangentUnit(i,:) = correctTangent(i,:)./tangentNorm;
-    end
+    % NOTE: in the assertion here we need to pick the RIGHT part of
+    % tangents. This would be easier if we selected it above.
+    
+    x = linspace(0,2*pi*(1-1/numVertices),1000);
+    assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(size(points,1)+1:size(points,1)*2,1)')) < 10e-14,'Estimated tangent x component not close to correct')
+    assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(size(points,1)+1:size(points,1)*2,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
-    try
-        x = linspace(0,2*pi*(1-1/numVertices),1000);
-        assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
-        assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
-    catch
-        figure;
-        plot(-a*sin(x)-correctTangent(:,1)')
-        
-        figure;
-        plot(b*cos(x)-correctTangent(:,2)')
-        
-        figure;
-        plot(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,1)')
-        
-        figure;
-        plot(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,2)');
-        
-%         figure; hold on;
-%         plot(points(:,1),points(:,1),'x-')
-%         for i=1:100:size(points,1)
-%             plot([points(i,1)],[points(i,2)+tange],'o-')
-%         end
-        
-        error('Cant continue.');
-    end
     % we then iterate over each point in the circle
     %for ii = 1:size(points,1)
     for ii = 1
