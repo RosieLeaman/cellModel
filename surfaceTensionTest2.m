@@ -1,4 +1,4 @@
-function error = surfaceTensionTest2(numVertices)
+function calculatedError = surfaceTensionTest2(numVertices)
 
 % initialise an image
 im = {};
@@ -12,7 +12,7 @@ if nargin < 1
     numVertices = 51;
 end
 
-a = 2; % x axis stretch
+a = 4; % x axis stretch
 b = 2; % y axis stretch
 
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
@@ -29,7 +29,7 @@ dt = 0.01;
 
 % store the error here, this is only calculated properly if we're only
 % doing one time step otherwise it's not very meaningful
-error = 0;
+calculatedError = 0;
 
 % here we store the flows at each vertex and the amount moved in the normal
 % direction
@@ -64,23 +64,45 @@ while count < 1
     
     % test the tangent is close to accurate
     % the analytical unit tangent should be for an ellipse
-    % (-(a/b)*y,(b/a)*x)/||t||
+    % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
     
     correctTangent = zeros(size(points));
+    correctTangentUnit = zeros(size(points));
     for i=1:size(points,1)
         correctTangent(i,1) = -(a/b)*points(i,2);
-        correctTangent(i,2) = (b/a)*points(i,1);
-        tangentNorm = norm(correctTangent(i,:));
+        correctTangent(i,2) = (b/a)*points(i,1);       
         
-        correctTangent(i,:) = correctTangent(i,:)./tangentNorm;
+        tangentNorm = norm(correctTangent(i,:));
+        tangentNorm = sqrt(correctTangent(i,1)^2+correctTangent(i,2)^2);
+        
+        correctTangentUnit(i,:) = correctTangent(i,:)./tangentNorm;
     end
-    
-    x = linspace(0,2*pi*(1-1/numVertices),1000);
-    assert(mean(abs(-sin(x)-correctTangent(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
-    assert(mean(abs(cos(x)-correctTangent(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
-    break
-    
+    try
+        x = linspace(0,2*pi*(1-1/numVertices),1000);
+        assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
+        assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
+    catch
+        figure;
+        plot(-a*sin(x)-correctTangent(:,1)')
+        
+        figure;
+        plot(b*cos(x)-correctTangent(:,2)')
+        
+        figure;
+        plot(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,1)')
+        
+        figure;
+        plot(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-correctTangentUnit(:,2)');
+        
+%         figure; hold on;
+%         plot(points(:,1),points(:,1),'x-')
+%         for i=1:100:size(points,1)
+%             plot([points(i,1)],[points(i,2)+tange],'o-')
+%         end
+        
+        error('Cant continue.');
+    end
     % we then iterate over each point in the circle
     %for ii = 1:size(points,1)
     for ii = 1
@@ -88,21 +110,14 @@ while count < 1
         % find the flow strength
         % we do this by calculating the surface tension integral
         % which gives the force in the normal direction
-        
-        
-        
+
         un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,1,a,b);
-        %un = calculateIntegral(points(ii,:),[1,0],splineX,splineY,1,0);
 
         if ii==1
             disp('doing some checks')
             correctNormalIndex = size(points2halfway,1)-halfway+ii;
             t = linspace(0,1,10000);
             integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX,splineY,1,1,a,b);
-%             figure;
-%             plot(t,integrand);
-%             title(['integrand point (',num2str(points(ii,1)),',',num2str(points(ii,2)),')'])
-
         end
         
         uns(ii) = un;
@@ -120,23 +135,16 @@ while count < 1
       
     end
 
-    % the error is just un actually
+    % the error is just un really
     errors;
-    error = mean(errors);
+    calculatedError = mean(errors);
     
     
     points = newPoints;  
     
     if mod(count,10) == 0
     %if 1
-        fig = figure;
-        plot(points(:,1),points(:,2),'x');
-        xlim([-20,20]);ylim([-20,20]);
-        
-        frame = getframe(fig);
-        im{idx} = frame2im(frame);
-        idx = idx + 1;
-        %close(fig)
+        im = addFrameToTiff(im,points,xmax,ymax,1);
     end
     
      
