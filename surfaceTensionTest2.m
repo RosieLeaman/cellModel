@@ -1,43 +1,26 @@
-function error = surfaceTensionTest2(vertices)
+function error = surfaceTensionTest2(numVertices)
+
+% initialise an image
+im = {};
+idx = 1; %idx is the index of the current image in our future tiff file
+xmax = 5;
+ymax = 5;
 
 format long
-% if there are no vertices input we just use test points
+% if there are no vertices input we just use a default value
 if nargin < 1
-    vertices = 51;
+    numVertices = 51;
 end
 
-% these points are an ellipse
-points = zeros(vertices,2);
-angles = zeros(vertices,1);
+a = 2; % x axis stretch
+b = 2; % y axis stretch
 
-a = 2;
-b = 2;
-
-index = 0;
-while index < vertices
-    theta = 0 + (2*pi*index)/vertices;
-    points(index+1,1) = a*cos(theta);
-    points(index+1,2) = b*sin(theta);
-    angles(index+1) = theta;
-    index = index + 1;
-end
-
-% for spout
-%points(18,:) = 1.5*points(18,:);
+[points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
 
 newPoints = points;
 
 % plot the starting position of the points
-idx = 1; %idx is the index of the current image in our future tiff file
-
-fig = figure;
-plot(points(:,1),points(:,2),'x');
-xlim([-20,20]);ylim([-20,20]);
-
-frame = getframe(fig);
-im{idx} = frame2im(frame);
-idx = idx + 1;
-%close(fig)
+im = addFrameToTiff(im,points,xmax,ymax,1);
 
 % we will run the algorithm for so many time steps and show the output
 time = 0;
@@ -47,16 +30,15 @@ dt = 0.01;
 % store the error here, this is only calculated properly if we're only
 % doing one time step otherwise it's not very meaningful
 error = 0;
-count = 0;
-
-disp('starting loop')
 
 % here we store the flows at each vertex and the amount moved in the normal
 % direction
-uns = zeros(vertices,1);
-flows = zeros(vertices,2);
+uns = zeros(numVertices,1);
+flows = zeros(numVertices,2);
 
+disp('starting loop')
 %while time < maxTime
+count = 0;
 while count < 1
     count = count + 1;
     
@@ -67,8 +49,42 @@ while count < 1
     % we have to add the beginning of points to the end to give the
     % impression of a complete polygon as we don't store the repeated point
     
-    points2 = [points;points(1,:)];
-    [normals,~,splineX,splineY,totalDistAround] = findTangentSpline(points2,1);
+    %points2 = [points;points(1,:)];
+    % alternative, wrap around our polygon three times
+    points2 = [points;points;points];
+    
+    [normals,tangents,splineX,splineY] = findTangentSpline(points2,1);
+    
+    xPoints = ppval(splineX,linspace(0,1-1/numVertices,numVertices))';
+    yPoints = ppval(splineY,linspace(0,1-1/numVertices,numVertices))';
+
+    % test the interpolation worked correctly
+    assert(mean(abs(xPoints-points(:,1))) < 10e-14,'Interpolated x points not close to actual points')
+    assert(mean(abs(yPoints-points(:,2))) < 10e-14,'Interpolated y points not close to actual points')
+    
+    % test the tangent is close to accurate
+    % the analytical unit tangent should be for an ellipse
+    % (-(a/b)*y,(b/a)*x)/||t||
+    
+    correctTangent = zeros(size(points));
+    for i=1:size(points,1)
+        correctTangent(i,1) = -(a/b)*points(i,2);
+        correctTangent(i,2) = (b/a)*points(i,1);
+        tangentNorm = norm(correctTangent(i,:));
+        
+        correctTangent(i,:) = correctTangent(i,:)./tangentNorm;
+    end
+    
+    x = linspace(0,2*pi*(1-1/numVertices),1000);
+    assert(mean(abs(-sin(x)-correctTangent(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
+    assert(mean(abs(cos(x)-correctTangent(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
+
+    break
+    
+%     angles2 = [angles;2*pi];
+%     angles2 = angles2./(2*pi);
+%     splineX = spline(angles2,points2(:,1));
+%     splineY = spline(angles2,points2(:,2));
     
     % matlab doesn't seem to like having the singularity at the end of
     % our interval, which is the opposite to what I expected
@@ -82,16 +98,13 @@ while count < 1
     % near the middle of the polygon vertex list poorly, but should be good
     % at the end points.
     
-    halfway = floor(vertices/2);
+    halfway = floor(numVertices/2);
     points2halfway = [points(halfway:end,:);points(1:halfway,:)];
-    [normals2,~,splineX2,splineY2,totalDistAround2] = findTangentSpline(points2halfway,1);
-    
-    if abs(totalDistAround - totalDistAround2) > 10e-10
-        warning('The distance around polygon was different in both cases.')
-        disp(totalDistAround)
-        disp(totalDistAround2)
-    end
-    
+%     [normals2,~,splineX2,splineY2] = findTangentSpline(points2halfway,1);
+%     
+
+    %figure;plot(ppx,ppy,'kx-')
+
     % we plot the radius of curvature of the polygon
     % we have to re-do the spline as findTangentSpline 
     % does not return the second derivatives which are needed in the
@@ -130,8 +143,8 @@ while count < 1
 %     title('radius of curvature')
     
     % we then iterate over each point in the circle
-    for ii = 1:size(points,1)
-    %for ii = 1
+    %for ii = 1:size(points,1)
+    for ii = 1
 
         % find the flow strength
         % we do this by calculating the surface tension integral
@@ -143,22 +156,23 @@ while count < 1
             % the index for the new normals in normals2 is not the same as
             % the normal index but is shifted
             correctNormalIndex = size(points2halfway,1)-halfway+ii;
-            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,totalDistAround,0,0);
+            %un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,0,0,a,b);
         elseif size(points,1) - ii < (halfway/2)
             % again we have to shift the indices
             correctNormalIndex = ii - halfway + 1;
-            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,totalDistAround,0,0);            
+            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,0,0,a,b);            
         else   
-            un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,totalDistAround,0,0);
+            un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,0,a,b);
         end
         
-        un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,totalDistAround,0,0);
+        un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,1,a,b);
+        %un = calculateIntegral(points(ii,:),[1,0],splineX,splineY,1,0);
 
         if ii==1
             disp('doing some checks')
             correctNormalIndex = size(points2halfway,1)-halfway+ii;
-            t = linspace(0,2*pi,10000);
-            integrand = calcIntegrandVectorised(t,points(ii,:),normals2(correctNormalIndex,:),splineX,splineY,1,0);
+            t = linspace(0,1,10000);
+            integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX,splineY,1,1,a,b);
 %             figure;
 %             plot(t,integrand);
 %             title(['integrand point (',num2str(points(ii,1)),',',num2str(points(ii,2)),')'])
@@ -219,22 +233,31 @@ while count < 1
 
 end
 
-saveLocation = 'testEllipse.tif';
-imwrite(im{1},saveLocation)
-for i=2:numel(im)
-    imwrite(im{i},saveLocation,'WriteMode','append')
+if numel(im) > 0
+    saveLocation = 'testEllipse.tif';
+    imwrite(im{1},saveLocation)
+    for i=2:numel(im)
+        imwrite(im{i},saveLocation,'WriteMode','append')
+    end
 end
 
 end
 
-function result = calculateIntegral(r0,r0normal,splineX,splineY,totalDistAround,plotYes,normalYes)
-
+function result = calculateIntegral(r0,r0normal,splineX,splineY,plotYes,normalYes,a,b)
 % we will be returning un
 % we want to use integral. So we need a function handle.
 
-fun = @(t)calcIntegrandVectorised(t,r0,r0normal,splineX,splineY,plotYes,normalYes);
+fun = @(t)calcIntegrandVectorised(t,r0,r0normal,splineX,splineY,plotYes,normalYes,a,b);
 
-result = integral(fun,0,totalDistAround);
+result = integral(fun,0,1)
+
+fun5 = @(z) (2*pi*a*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2).*(cos(2*pi*z) - 1).*((a^2.*sin(2*pi*z).^2.*(b^2*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) - (b^2*cos(2*pi*z).^2.*(b^2.*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) + (4*a^2*b^2.*cos(2*pi*z).*sin(2*pi*z).^2.*(cos(2*pi*z) - 1))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2)))./(b^2.*sin(2*pi*z).^2 + a^2.*(cos(2*pi*z) - 1).^2).^2;
+
+actualIntegral = integral(fun5,0,1)
+
+fun5Alt = @(t) (a*(a^2*sin(t).^2 + b^2*cos(t).^2).^(1/2).*(cos(t) - 1).*((a^2.*sin(t).^2.*(b^2*sin(t).^2 - a^2.*(cos(t) - 1).^2))./(a^2.*sin(t).^2 + b^2.*cos(t).^2) - (b^2*cos(t).^2.*(b^2.*sin(t).^2 - a^2.*(cos(t) - 1).^2))./(a^2.*sin(t).^2 + b^2.*cos(t).^2) + (4*a^2*b^2.*cos(t).*sin(t).^2.*(cos(t) - 1))./(a^2.*sin(t).^2 + b^2.*cos(t).^2)))./(b^2.*sin(t).^2 + a^2.*(cos(t) - 1).^2).^2;
+
+actualIntegral = integral(fun5Alt,0,2*pi)
 
 end
 
@@ -269,4 +292,22 @@ end
 % list(N)
 function result = shuffle(list,N)
     result = nextN(N,numel(list),numel(list));
+end
+
+function [image] = addFrameToTiff(image,points,xmax,ymax,closeFrameYes)
+    % find the next index
+    idx = numel(image)+1;
+    
+    % plot the image
+    fig = figure;
+    plot(points(:,1),points(:,2),'x');
+    xlim([-xmax,xmax]);ylim([-ymax,ymax]);
+
+    frame = getframe(fig);
+    image{idx} = frame2im(frame);
+    
+    if closeFrameYes == 1
+        close(fig)
+    end
+    
 end
