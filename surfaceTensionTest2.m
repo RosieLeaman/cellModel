@@ -81,67 +81,6 @@ while count < 1
 
     break
     
-%     angles2 = [angles;2*pi];
-%     angles2 = angles2./(2*pi);
-%     splineX = spline(angles2,points2(:,1));
-%     splineY = spline(angles2,points2(:,2));
-    
-    % matlab doesn't seem to like having the singularity at the end of
-    % our interval, which is the opposite to what I expected
-    % so for ii=1 rearrange our points and re-find the spline so that
-    % it's not at the end
-    
-    % the spline fit is bad at the ends of the interval, so for points near
-    % the beginning/end of the polygon vertex list we actually use an
-    % alternative spline, spline2 which begins halfway around the polygon
-    % but otherwise uses the same set of points. Spline2 estimates points
-    % near the middle of the polygon vertex list poorly, but should be good
-    % at the end points.
-    
-    halfway = floor(numVertices/2);
-    points2halfway = [points(halfway:end,:);points(1:halfway,:)];
-%     [normals2,~,splineX2,splineY2] = findTangentSpline(points2halfway,1);
-%     
-
-    %figure;plot(ppx,ppy,'kx-')
-
-    % we plot the radius of curvature of the polygon
-    % we have to re-do the spline as findTangentSpline 
-    % does not return the second derivatives which are needed in the
-    % formula
-    
-    % first get the distances apart from each other
-    t = zeros(size(points2,1),1);
-    for i=2:numel(t)
-        t(i) = t(i-1) + findDist(points2(i,:),points2(i-1,:));
-    end
-
-    % normalise to [0,1]
-    t = t./(max(t));
-    
-    ppvalXdiff = fnder(splineX);
-    ppvalYdiff = fnder(splineY);
-    ppvalXdiff2 = fnder(ppvalXdiff);
-    ppvalYdiff2 = fnder(ppvalYdiff);
-
-    xdiffs = ppval(ppvalXdiff,t);
-    ydiffs = ppval(ppvalYdiff,t);
-    xdiffs2 = ppval(ppvalXdiff2,t);
-    ydiffs2 = ppval(ppvalYdiff2,t);
-    
-    R = zeros(size(points2,1),1);
-
-    for i=1:numel(xdiffs)
-        R(i) = (xdiffs(i)*ydiffs2(i)-ydiffs(i)*xdiffs2(i))/(((xdiffs(i))^2+(ydiffs(i))^2)^(3/2));
-    end
-    
-%     figure;
-%     plot(R,'linewidth',2)
-%     axis tight
-%     grid on
-%     set(gca,'FontSize',16)
-%     title('radius of curvature')
-    
     % we then iterate over each point in the circle
     %for ii = 1:size(points,1)
     for ii = 1
@@ -150,20 +89,7 @@ while count < 1
         % we do this by calculating the surface tension integral
         % which gives the force in the normal direction
         
-        % first we deal with points where we use the second spline
-        if ii < (halfway/2)
-            % because we shifted the points round to get the second spline
-            % the index for the new normals in normals2 is not the same as
-            % the normal index but is shifted
-            correctNormalIndex = size(points2halfway,1)-halfway+ii;
-            %un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,0,0,a,b);
-        elseif size(points,1) - ii < (halfway/2)
-            % again we have to shift the indices
-            correctNormalIndex = ii - halfway + 1;
-            un = calculateIntegral(points(ii,:),normals2(correctNormalIndex,:),splineX2,splineY2,0,0,a,b);            
-        else   
-            un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,0,a,b);
-        end
+        
         
         un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,1,a,b);
         %un = calculateIntegral(points(ii,:),[1,0],splineX,splineY,1,0);
