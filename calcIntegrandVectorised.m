@@ -30,7 +30,7 @@ ds = zeros(1,numel(t));
 for i=1:numel(integrands)
     [integrandX,integrandY,Jexpression,checkX,checkY] = calcIntegrand(r0,points(i,:),unitTangents(i,:));
     
-    integrands(i) = integrandX*r0normal(1) + integrandY*r0normal(2);
+   % this needs reordering, what on earth is this nonsense atm
     
     % save these, remembering to multiply the integrand by |ds|
     absDs = sqrt(tangents(i,1)^2+tangents(i,2)^2);
@@ -40,99 +40,45 @@ for i=1:numel(integrands)
     
     integrandsX(i) = integrandX*absDs;
     integrandsY(i) = integrandY*absDs;
+   
     Jexpressions(i) = Jexpression;
     checksX(i) = checkX;
     checksY(i) = checkY;
+    
+    integrands(i) = (integrandX*r0normal(1) + integrandY*r0normal(2))*absDs;
 end
 
+% when parametrised by theta, for an ellipse with x stretch a and y stretch
+% b, the correct comparison functions are given by:
+
+% note that these are parametrised so that the integral range is 0-1 NOT
+% 0-2pi
+
+% ENTIRE INTEGRAL:
+% fun5 = @(z) (2*pi*a*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2).*(cos(2*pi*z) - 1).*((a^2.*sin(2*pi*z).^2.*(b^2*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) - (b^2*cos(2*pi*z).^2.*(b^2.*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) + (4*a^2*b^2.*cos(2*pi*z).*sin(2*pi*z).^2.*(cos(2*pi*z) - 1))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2)))./(b^2.*sin(2*pi*z).^2 + a^2.*(cos(2*pi*z) - 1).^2).^2;
+
+% x and y coordinates
+% xvalues = @(z) a*cos(2*pi*z);
+% yvalues = @(z) b*sin(2*pi*z);
+
+% tangent and unit tangents
+% tangentXunit = @(z) -a*sin(2*pi*z)./sqrt((a*sin(2*pi*z)).^2+(b*cos(2*pi*z)).^2);
+% tangentYunit = @(z) b*cos(2*pi*z)./sqrt((a*sin(2*pi*z)).^2+(b*cos(2*pi*z)).^2);
+% 
+% tangentX = @(z) -2*pi*a*sin(2*pi*z);
+% tangentY = @(z) 2*pi*b*cos(2*pi*z);
+
+% ds = sqrt(dx/dt^2+dy/dt^2)
+% funDs = @(z) 2*pi*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2);
+
+
 if plotYes==1
-    figure;
+    figure; hold on;
     plot(points(:,1),points(:,2),'x-')
+    
+    plot([r0(1),r0(1)+0.5*r0normal(1)],[r0(2),r0(2)+0.5*r0normal(2)],'o-')
     title(['points, r0 is (',num2str(r0(1)),',',num2str(r0(2)),')'])
-%     
-%     figure; hold on;
-%     plot(points(:,1),points(:,2),'x-')
-%     for i=1:1000:size(tangents,1)
-%         plot([points(i,1),points(i,1)+0.5*tangents(i,1)],[points(i,2),points(i,2)+0.5*tangents(i,2)],'ro-')
-%     end
-    
-%     figure;
-%     subplot(1,3,1)
-%     plot(t,integrands,'x-')
-%     title('integrand')
-%     subplot(1,3,2)
-%     plot(points(:,1),integrandsX,'x-')
-%     title('integrand X')
-%     subplot(1,3,3)
-%     plot(points(:,2),integrandsY,'x-')
-%     title('integrand Y')
-%     
-%     figure;
-%     subplot(1,3,1)
-%     plot(points(:,1),Jexpressions,'x')
-%     title('J')
-%     subplot(1,3,2)
-%     plot(points(:,1),checksX,'x')
-%     title('x prefactor')
-%     subplot(1,3,3)
-%     plot(points(:,2),checksY,'x')
-%     title('y prefactor')
-    
-    fun5 = @(z) (2*pi*a*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2).*(cos(2*pi*z) - 1).*((a^2.*sin(2*pi*z).^2.*(b^2*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) - (b^2*cos(2*pi*z).^2.*(b^2.*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) + (4*a^2*b^2.*cos(2*pi*z).*sin(2*pi*z).^2.*(cos(2*pi*z) - 1))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2)))./(b^2.*sin(2*pi*z).^2 + a^2.*(cos(2*pi*z) - 1).^2).^2;
 
-    figure;hold on;
-    plot(t,integrandsX,'x')
-    plot(t,fun5(t),'o')
-    title('whole integrand')
-    
-    diffs = zeros(1,numel(integrandsX));
-    for i=1:numel(diffs)
-        diffs(i) = integrandsX(i)-fun5(t(i));
-    end
-    figure;
-    plot(t,diffs);
-    title('integrand diffs')
-    
-    % check the tangents
-    
-    xvalues = @(z) a*cos(2*pi*z);
-    yvalues = @(z) b*sin(2*pi*z);
-    
-    tangentXunit = @(z) -a*sin(2*pi*z)./sqrt((a*sin(2*pi*z)).^2+(b*cos(2*pi*z)).^2);
-    tangentYunit = @(z) b*cos(2*pi*z)./sqrt((a*sin(2*pi*z)).^2+(b*cos(2*pi*z)).^2);
-    
-    tangentX = @(z) -2*pi*a*sin(2*pi*z);
-    tangentY = @(z) 2*pi*b*cos(2*pi*z);
-    
-    figure;hold on;
-    plot(t,tangents(:,1),'x')
-    plot(t,tangentX(t),'o')
-    title('tangent x')
-    
-    figure;hold on;
-    plot(t,tangents(:,2),'x')
-    plot(t,tangentY(t),'o')
-    title('tangent y')
-
-    figure;hold on;
-    plot(t,unitTangents(:,1),'x')
-    plot(t,tangentXunit(t),'o')
-    title('unit tangent x')
-    
-    figure;hold on;
-    plot(t,unitTangents(:,2),'x')
-    plot(t,tangentYunit(t),'o')
-    title('unit tangent y')
-    
-    funDs = @(z) (a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2);
-    
-    diffs = zeros(1,numel(ds));
-    for i=1:numel(diffs)
-        diffs(i) = ds(i)-funDs(t(i));
-    end
-    figure;
-    plot(t,diffs);
-    title('ds diffs')
 %     
 %     funJ = @(z) (a^2.*sin(z).^2.*(b^2*sin(z).^2 - a^2.*(cos(z) - 1).^2))./(a^2.*sin(z).^2 + b^2.*cos(z).^2) - (b^2*cos(z).^2.*(b^2.*sin(z).^2 - a^2.*(cos(z) - 1).^2))./(a^2.*sin(z).^2 + b^2.*cos(z).^2) + (4*a^2*b^2.*cos(z).*sin(z).^2.*(cos(z) - 1))./(a^2.*sin(z).^2 + b^2.*cos(z).^2);
 % 

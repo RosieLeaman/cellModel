@@ -3,8 +3,8 @@ function calculatedError = surfaceTensionTest2(numVertices)
 % initialise an image
 im = {};
 idx = 1; %idx is the index of the current image in our future tiff file
-xmax = 5;
-ymax = 5;
+xmax = 10;
+ymax = 10;
 
 format long
 % if there are no vertices input we just use a default value
@@ -12,7 +12,7 @@ if nargin < 1
     numVertices = 51;
 end
 
-a = 20; % x axis stretch
+a = 4; % x axis stretch
 b = 2; % y axis stretch
 
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
@@ -24,7 +24,7 @@ im = addFrameToTiff(im,points,xmax,ymax,1);
 
 % we will run the algorithm for so many time steps and show the output
 time = 0;
-maxTime = 0.1; % 0.3
+maxTime = 0.6; % 0.3
 dt = 0.01;
 
 % store the error here, this is only calculated properly if we're only
@@ -37,8 +37,9 @@ uns = zeros(numVertices,1);
 flows = zeros(numVertices,2);
 
 disp('starting loop')
-%while time < maxTime
 count = 0;
+%while time < maxTime
+
 while count < 1
     count = count + 1;
     
@@ -85,7 +86,7 @@ while count < 1
         % we do this by calculating the surface tension integral
         % which gives the force in the normal direction
 
-        un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,1,a,b);
+        un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,0,a,b);
 
         if ii==1
             disp('doing some checks')
@@ -112,12 +113,11 @@ while count < 1
     % the error is just un really
     errors;
     calculatedError = mean(errors);
-    
-    
+
     points = newPoints;  
     
-    if mod(count,10) == 0
-        im = addFrameToTiff(im,points,xmax,ymax,1);
+    if mod(count,2) == 0
+        im = addFrameToTiff(im,points,xmax,ymax,0);
     end
     
      
@@ -160,11 +160,9 @@ result = integral(fun,0,1)
 
 fun5 = @(z) (2*pi*a*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2).*(cos(2*pi*z) - 1).*((a^2.*sin(2*pi*z).^2.*(b^2*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) - (b^2*cos(2*pi*z).^2.*(b^2.*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) + (4*a^2*b^2.*cos(2*pi*z).*sin(2*pi*z).^2.*(cos(2*pi*z) - 1))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2)))./(b^2.*sin(2*pi*z).^2 + a^2.*(cos(2*pi*z) - 1).^2).^2;
 
-actualIntegral = integral(fun5,0,1)
 
-fun5Alt = @(t) (a*(a^2*sin(t).^2 + b^2*cos(t).^2).^(1/2).*(cos(t) - 1).*((a^2.*sin(t).^2.*(b^2*sin(t).^2 - a^2.*(cos(t) - 1).^2))./(a^2.*sin(t).^2 + b^2.*cos(t).^2) - (b^2*cos(t).^2.*(b^2.*sin(t).^2 - a^2.*(cos(t) - 1).^2))./(a^2.*sin(t).^2 + b^2.*cos(t).^2) + (4*a^2*b^2.*cos(t).*sin(t).^2.*(cos(t) - 1))./(a^2.*sin(t).^2 + b^2.*cos(t).^2)))./(b^2.*sin(t).^2 + a^2.*(cos(t) - 1).^2).^2;
-
-actualIntegral = integral(fun5Alt,0,2*pi)
+actualIntegralX = integral(fun5,0,1)
+actualIntegralY = integral(fun5Y,0,1)
 
 end
 

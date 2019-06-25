@@ -19,5 +19,5 @@ end
 normals = zeros(size(tangents));
 for i=1:size(tangents,1)
     % this is the OUTWARD POINTING NORMAL
-    normals(i,:) = [-tangents(i,2),tangents(i,1)];
+    normals(i,:) = [tangents(i,2),-tangents(i,1)];
 end
