@@ -3,8 +3,8 @@ function calculatedError = surfaceTensionTest2(numVertices)
 % initialise an image
 im = {};
 idx = 1; %idx is the index of the current image in our future tiff file
-xmax = 4;
-ymax = 2;
+xmax = 10;
+ymax = 10;
 
 format long
 % if there are no vertices input we just use a default value
@@ -12,7 +12,7 @@ if nargin < 1
     numVertices = 51;
 end
 
-a = 4; % x axis stretch
+a = 10; % x axis stretch
 b = 2; % y axis stretch
 
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
@@ -38,9 +38,9 @@ flows = zeros(numVertices,2);
 
 disp('starting loop')
 count = 0;
-while time < maxTime
+%while time < maxTime
 
-%while count < 1
+while count < 1
     count = count + 1;
     
     errors = zeros(1,size(points,1));
@@ -63,20 +63,30 @@ while time < maxTime
     normals = wholeNormals(size(points,1)+1:size(points,1)*2,:);
     tangents = wholeTangents(size(points,1)+1:size(points,1)*2,:);
     
+    figure; hold on;
+    for i=1:25:size(points,1)
+        plot(points(i,1),points(i,2),'bx')
+        dot(tangents(i,:),normals(i,:))
+        
+        plot([points(i,1),points(i,1)+normals(i,1)],[points(i,2),points(i,2)+normals(i,2)],'r-o')
+        plot([points(i,1),points(i,1)+tangents(i,1)],[points(i,2),points(i,2)+tangents(i,2)],'k-o')
+    end
+    xlim([-10,10]);ylim([-10,10])
+    
     xPoints = ppval(splineX,linspace(0,1-1/numVertices,numVertices))';
     yPoints = ppval(splineY,linspace(0,1-1/numVertices,numVertices))';
 
     % test the interpolation worked correctly
-%     assert(mean(abs(xPoints-points(:,1))) < 10e-14,'Interpolated x points not close to actual points')
-%     assert(mean(abs(yPoints-points(:,2))) < 10e-14,'Interpolated y points not close to actual points')
+    assert(mean(abs(xPoints-points(:,1))) < 10e-14,'Interpolated x points not close to actual points')
+    assert(mean(abs(yPoints-points(:,2))) < 10e-14,'Interpolated y points not close to actual points')
     
     % test the tangent is close to accurate
     % the analytical unit tangent should be for an ellipse
     % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
 
     x = linspace(0,2*pi*(1-1/numVertices),numVertices);
-%     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
-%     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
+    assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
+    assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
     % we then iterate over each point in the circle
     for ii = 1:size(points,1)
@@ -131,10 +141,12 @@ while time < maxTime
      
     time = time + dt;
     
-%     figure;
-%     plot(angles,uns)
-%     ylabel('un');xlabel('angle')
-%     
+    figure;
+    plot(angles,uns)
+    xticks(0:pi/2:2*pi)
+    xticklabels({'0','\pi/2','\pi','3\pi/2','2\pi'})
+    ylabel('un');xlabel('angle')
+    
 %     figure;
 %     plot(angles,errors,'x-')
 %     
@@ -181,7 +193,7 @@ function [image] = addFrameToTiff(image,points,xmax,ymax,closeFrameYes)
     fig = figure;
     plot(points(:,1),points(:,2),'x');
     xlim([-xmax,xmax]);ylim([-ymax,ymax]);
-    xlim([3,4]);ylim([-ymax,ymax]);
+    %xlim([3.6,4]);ylim([-1,1]);
 
     frame = getframe(fig);
     image{idx} = frame2im(frame);
