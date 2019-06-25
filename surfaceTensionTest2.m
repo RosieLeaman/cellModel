@@ -3,8 +3,8 @@ function calculatedError = surfaceTensionTest2(numVertices)
 % initialise an image
 im = {};
 idx = 1; %idx is the index of the current image in our future tiff file
-xmax = 10;
-ymax = 10;
+xmax = 4;
+ymax = 2;
 
 format long
 % if there are no vertices input we just use a default value
@@ -24,7 +24,7 @@ im = addFrameToTiff(im,points,xmax,ymax,1);
 
 % we will run the algorithm for so many time steps and show the output
 time = 0;
-maxTime = 0.6; % 0.3
+maxTime = 0.1; % 0.3
 dt = 0.01;
 
 % store the error here, this is only calculated properly if we're only
@@ -38,9 +38,9 @@ flows = zeros(numVertices,2);
 
 disp('starting loop')
 count = 0;
-%while time < maxTime
+while time < maxTime
 
-while count < 1
+%while count < 1
     count = count + 1;
     
     errors = zeros(1,size(points,1));
@@ -67,33 +67,40 @@ while count < 1
     yPoints = ppval(splineY,linspace(0,1-1/numVertices,numVertices))';
 
     % test the interpolation worked correctly
-    assert(mean(abs(xPoints-points(:,1))) < 10e-14,'Interpolated x points not close to actual points')
-    assert(mean(abs(yPoints-points(:,2))) < 10e-14,'Interpolated y points not close to actual points')
+%     assert(mean(abs(xPoints-points(:,1))) < 10e-14,'Interpolated x points not close to actual points')
+%     assert(mean(abs(yPoints-points(:,2))) < 10e-14,'Interpolated y points not close to actual points')
     
     % test the tangent is close to accurate
     % the analytical unit tangent should be for an ellipse
     % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
 
     x = linspace(0,2*pi*(1-1/numVertices),numVertices);
-    assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
-    assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
+%     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
+%     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
     % we then iterate over each point in the circle
-    %for ii = 1:size(points,1)
-    for ii = 1
+    for ii = 1:size(points,1)
+    %for ii = 1
 
         % find the flow strength
         % we do this by calculating the surface tension integral
         % which gives the force in the normal direction
+        
+        % we must first calculate the rotation matrix which brings the
+        % point ii to have normal (1,0) and tangent (0,1)
+        
+        % the correctedIndex is the index
+        rotMatrix = [[tangents(ii,2),-tangents(ii,1)];[-normals(ii,2),normals(ii,1)]];
+        invRotMatrix = [[normals(ii,1),tangents(ii,1)];[normals(ii,2),tangents(ii,2)]];
 
-        un = calculateIntegral(points(ii,:),normals(ii,:),splineX,splineY,0,0,a,b);
+        un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0,0,a,b);
 
-        if ii==1
-            disp('doing some checks')
-            t = linspace(0,1,10000);
-            
-            integrand = calcIntegrandVectorised(t,points(ii,:),normals(ii,:),splineX,splineY,1,1,a,b);
-        end
+%         if ii==1
+%             disp('doing some checks')
+%             t = linspace(0,1,10000);
+%             
+%             integrand = calcIntegrandVectorised(t,points(ii,:),rotMatrix,splineX,splineY,1,1,a,b);
+%         end
         
         uns(ii) = un;
         
@@ -104,7 +111,7 @@ while count < 1
 
         % move that point by how much
         
-        newPoints(ii,:) = points(ii,:) + flow*dt;
+        newPoints(ii,:) = points(ii,:) - (invRotMatrix*[un;0]*dt)';
         
         errors(ii) = findDist(points(ii,:),newPoints(ii,:));
       
@@ -116,7 +123,8 @@ while count < 1
 
     points = newPoints;  
     
-    if mod(count,2) == 0
+    %if mod(count,2) == 0
+    if 1
         im = addFrameToTiff(im,points,xmax,ymax,0);
     end
     
@@ -150,19 +158,18 @@ end
 
 end
 
-function result = calculateIntegral(r0,r0normal,splineX,splineY,plotYes,normalYes,a,b)
+function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes,normalYes,a,b)
 % we will be returning un
 % we want to use integral. So we need a function handle.
 
-fun = @(t)calcIntegrandVectorised(t,r0,r0normal,splineX,splineY,plotYes,normalYes,a,b);
+fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes,normalYes,a,b);
 
-result = integral(fun,0,1)
+result = integral(fun,0,1);
 
 fun5 = @(z) (2*pi*a*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2).*(cos(2*pi*z) - 1).*((a^2.*sin(2*pi*z).^2.*(b^2*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) - (b^2*cos(2*pi*z).^2.*(b^2.*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) + (4*a^2*b^2.*cos(2*pi*z).*sin(2*pi*z).^2.*(cos(2*pi*z) - 1))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2)))./(b^2.*sin(2*pi*z).^2 + a^2.*(cos(2*pi*z) - 1).^2).^2;
 
 
-actualIntegralX = integral(fun5,0,1)
-actualIntegralY = integral(fun5Y,0,1)
+%actualIntegralX = integral(fun5,0,1)
 
 end
 
@@ -174,6 +181,7 @@ function [image] = addFrameToTiff(image,points,xmax,ymax,closeFrameYes)
     fig = figure;
     plot(points(:,1),points(:,2),'x');
     xlim([-xmax,xmax]);ylim([-ymax,ymax]);
+    xlim([3,4]);ylim([-ymax,ymax]);
 
     frame = getframe(fig);
     image{idx} = frame2im(frame);

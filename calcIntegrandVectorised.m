@@ -1,4 +1,4 @@
-function integrands = calcIntegrandVectorised(t,r0,r0normal,splineX,splineY,plotYes,normalYes,a,b)
+function integrands = calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes,normalYes,a,b)
 
 % we want to return the integrand at every point p(t)
 
@@ -9,6 +9,14 @@ points = zeros(numel(t),2);
 points(:,1) = ppval(splineX,t);
 points(:,2) = ppval(splineY,t);
 
+% we then need to rotate them all to get the correct dx, dy
+% unfortunately our points matrix has points as rows, not column vectors,
+% so we have to transpose first and then transpose back to keep consistency
+points = (r0rotation*points')';
+
+% we must also rotate r0
+r0 = (r0rotation*r0')';
+
 % we also need the tangents at these points
 
 [tangents,~] = findTangentFromSplines(t,splineX,splineY,0);
@@ -18,17 +26,20 @@ for i=1:size(unitTangents,1)
     unitTangents(i,:) = unitTangents(i,:)./norm(unitTangents(i,:));
 end
 
+% these also have to be rotated the same as the points
+% it may be a better idea to re-find the tangents from the new points, not
+% sure atm
+tangents = (r0rotation*tangents')';
+
 % then we can work out the integrand easy
 integrands = zeros(1,numel(t));
 integrandsX = zeros(1,numel(t));
 integrandsY = zeros(1,numel(t));
 Jexpressions = zeros(1,numel(t));
-checksX = zeros(1,numel(t));
-checksY = zeros(1,numel(t));
 ds = zeros(1,numel(t));
 
 for i=1:numel(integrands)
-    [integrandX,integrandY,Jexpression,checkX,checkY] = calcIntegrand(r0,points(i,:),unitTangents(i,:));
+    [integrandX,Jexpression] = calcIntegrand(r0,points(i,:),unitTangents(i,:));
     
    % this needs reordering, what on earth is this nonsense atm
     
@@ -39,13 +50,10 @@ for i=1:numel(integrands)
     %absDs = 1;
     
     integrandsX(i) = integrandX*absDs;
-    integrandsY(i) = integrandY*absDs;
    
     Jexpressions(i) = Jexpression;
-    checksX(i) = checkX;
-    checksY(i) = checkY;
     
-    integrands(i) = (integrandX*r0normal(1) + integrandY*r0normal(2))*absDs;
+    integrands(i) = integrandsX(i);
 end
 
 % when parametrised by theta, for an ellipse with x stretch a and y stretch
@@ -75,53 +83,6 @@ end
 if plotYes==1
     figure; hold on;
     plot(points(:,1),points(:,2),'x-')
-    
-    plot([r0(1),r0(1)+0.5*r0normal(1)],[r0(2),r0(2)+0.5*r0normal(2)],'o-')
-    title(['points, r0 is (',num2str(r0(1)),',',num2str(r0(2)),')'])
-
-%     
-%     funJ = @(z) (a^2.*sin(z).^2.*(b^2*sin(z).^2 - a^2.*(cos(z) - 1).^2))./(a^2.*sin(z).^2 + b^2.*cos(z).^2) - (b^2*cos(z).^2.*(b^2.*sin(z).^2 - a^2.*(cos(z) - 1).^2))./(a^2.*sin(z).^2 + b^2.*cos(z).^2) + (4*a^2*b^2.*cos(z).*sin(z).^2.*(cos(z) - 1))./(a^2.*sin(z).^2 + b^2.*cos(z).^2);
-% 
-%     figure;hold on;
-%     plot(t,Jexpressions,'x')
-%     plot(t,funJ(2*pi*t),'o')
-%     title('diffs J')
-%     
-%     diffs = zeros(1,numel(Jexpressions));
-%     for i=1:numel(diffs)
-%         diffs(i) = Jexpressions(i)-funJ(2*pi*t(i));
-%     end
-%     figure;
-%     plot(t,diffs);
-%     title('J diffs')
-%     
-% %     figure; hold on;
-% %     plot(t,points(:,1)-r0(1))
-% %     plot(t,points(:,2)-r0(2))
-% %     title('dr')
-%     
-%     funPrefactorX = @(z) (a*(cos(z) - 1))./(b^2.*sin(z).^2 + a^2.*(cos(z) - 1).^2).^2;
-%     
-%     figure;hold on;
-%     plot(t,checksX,'x')
-%     plot(t,funPrefactorX(2*pi*t),'o')
-%     title('diffs prefactor')
-%     
-%     diffs = zeros(1,numel(checksX));
-%     for i=1:numel(diffs)
-%         diffs(i) = checksX(i)-funPrefactorX(2*pi*t(i));
-%     end
-%     figure;
-%     plot(t,diffs);
-%     title('prefactor diffs')
-%     
-%     funJplusPre = @(z) (a*(cos(z) - 1).*((a^2.*sin(z).^2.*(b^2*sin(z).^2 - a^2.*(cos(z) - 1).^2))./(a^2.*sin(z).^2 + b^2.*cos(z).^2) - (b^2*cos(z).^2.*(b^2.*sin(z).^2 - a^2.*(cos(z) - 1).^2))./(a^2.*sin(z).^2 + b^2.*cos(z).^2) + (4*a^2*b^2.*cos(z).*sin(z).^2.*(cos(z) - 1))./(a^2.*sin(z).^2 + b^2.*cos(z).^2)))./(b^2.*sin(z).^2 + a^2.*(cos(z) - 1).^2).^2;
-%     
-%     figure; hold on;
-%     plot(t,checksX.*Jexpressions)
-%     plot(t,funJplusPre(2*pi*t))
-%     title('diffs jxpre')
-    
 end
 
 if normalYes == 1
@@ -134,7 +95,8 @@ end
 
 end
 
-function [integrandX,integrandY,Jexpression,checkX,checkY] = calcIntegrand(r0,rs,t)
+function [integrandX,Jexpression] = calcIntegrand(r0,rs,t)
+% in the case where we rotate, we only need to calculate integrandX 
 
 dr = rs - r0;
 
@@ -144,10 +106,7 @@ Jexpression = calcJexpression(dr(1),dr(2),t(1),t(2));
 
 integrandX = (dr(1)/(square.^2))*Jexpression;
 
-integrandY = (dr(2)/(square.^2))*Jexpression;
-
-checkX = dr(1)/(square.^2);
-checkY = dr(2)/(square.^2);
+%integrandY = (dr(2)/(square.^2))*Jexpression;
 
 end
 
@@ -179,4 +138,3 @@ function result = calcJexpression2(dX,dY,tX,tY,square)
 result = tX*tX*(1-2*(dX*dX/square)) - 4*tX*tY*(dX*dY/square) + tY*tY*(1-2*(dY*dY/square));
 
 end
-
