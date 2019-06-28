@@ -12,7 +12,7 @@ if nargin < 1
     numVertices = 51;
 end
 
-a = 10; % x axis stretch
+a = 2.5; % x axis stretch
 b = 2; % y axis stretch
 
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
@@ -66,7 +66,6 @@ while count < 1
     figure; hold on;
     for i=1:25:size(points,1)
         plot(points(i,1),points(i,2),'bx')
-        dot(tangents(i,:),normals(i,:))
         
         plot([points(i,1),points(i,1)+normals(i,1)],[points(i,2),points(i,2)+normals(i,2)],'r-o')
         plot([points(i,1),points(i,1)+tangents(i,1)],[points(i,2),points(i,2)+tangents(i,2)],'k-o')
@@ -88,6 +87,7 @@ while count < 1
     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
 
+    currentArea = polyarea(points(:,1),points(:,2));
     % we then iterate over each point in the circle
     for ii = 1:size(points,1)
     %for ii = 1
@@ -102,8 +102,12 @@ while count < 1
         % the correctedIndex is the index
         rotMatrix = [[tangents(ii,2),-tangents(ii,1)];[-normals(ii,2),normals(ii,1)]];
         invRotMatrix = [[normals(ii,1),tangents(ii,1)];[normals(ii,2),tangents(ii,2)]];
-
-        un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0,0,a,b);
+        
+        if ii == floor(size(points,1)/4)
+            un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,1,0,a,b);
+        else
+            un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0,0,a,b);
+        end
 
 %         if ii==1
 %             disp('doing some checks')
@@ -116,12 +120,14 @@ while count < 1
         
         % this has to be applied in the direction of the outward pointing
         % normal      
-        flow = -un.*normals(ii,:);
-        flows(ii,:) = flow;
+%         flow = -un.*normals(ii,:);
+%         flows(ii,:) = flow;
 
-        % move that point by how much
+        % we have the flow along the normal direction.
         
-        newPoints(ii,:) = points(ii,:) - (invRotMatrix*[un;0]*dt)';
+        newPoints(ii,:) = points(ii,:) + dt*un*normals(ii,:);
+        %newPoints(ii,:) = points(ii,:) + (invRotMatrix*[-un;0]*dt)';
+        flows(ii,:) =  + (invRotMatrix*[-un;0]*dt)';
         
         errors(ii) = findDist(points(ii,:),newPoints(ii,:));
       
@@ -131,7 +137,7 @@ while count < 1
     errors;
     calculatedError = mean(errors);
 
-    points = newPoints;  
+    points = newPoints;
     
     %if mod(count,2) == 0
     if 1
@@ -146,6 +152,20 @@ while count < 1
     xticks(0:pi/2:2*pi)
     xticklabels({'0','\pi/2','\pi','3\pi/2','2\pi'})
     ylabel('un');xlabel('angle')
+    
+    figure; hold on;
+    plot(angles,flows(:,1))
+    plot(angles,flows(:,2))
+    xticks(0:pi/2:2*pi)
+    xticklabels({'0','\pi/2','\pi','3\pi/2','2\pi'})
+    legend('x','y')
+    ylabel('flows after rotation');xlabel('angle')
+    grid minor;
+    
+    newArea = polyarea(points(:,1),points(:,2));
+    
+    assert(abs(newArea - currentArea) < 10e-10,['Polygon changed area when calculating surface tension, was ',num2str(currentArea),' now ',num2str(newArea)]);
+    
     
 %     figure;
 %     plot(angles,errors,'x-')
