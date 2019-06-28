@@ -29,7 +29,19 @@ end
 % these also have to be rotated the same as the points
 % it may be a better idea to re-find the tangents from the new points, not
 % sure atm
-tangents = (r0rotation*tangents')';
+rotatedTangents = (r0rotation*unitTangents')';
+
+if plotYes == 1
+    norm(tangents(1,:))
+    norm(rotatedTangents(1,:))
+    figure; hold on;
+    plot(points(:,1),points(:,2),'x-')
+    for i = 1:25:size(points,1)
+        plot([points(i,1),points(i,1)+rotatedTangents(i,1)],[points(i,2),points(i,2)+rotatedTangents(i,2)],'o-')
+    end
+end
+
+tangents = rotatedTangents;
 
 % then we can work out the integrand easy
 integrands = zeros(1,numel(t));
@@ -78,12 +90,6 @@ end
 
 % ds = sqrt(dx/dt^2+dy/dt^2)
 % funDs = @(z) 2*pi*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2);
-
-
-if plotYes==1
-    figure; hold on;
-    plot(points(:,1),points(:,2),'x-')
-end
 
 if normalYes == 1
     disp('x integrand only')
