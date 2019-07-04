@@ -66,79 +66,12 @@ while count < 1
     % points. We actually only need the normals which are used to move the
     % points along the normal direction
     [wholeTangents,wholeNormals] = findTangentFromSplines(splineX.breaks,splineX,splineY,1);
-    disp('splineX.breaks')
-    size(splineX.breaks)
     
     % the above gives us normals and tangents for each point going around
     % the polygon three times. Just select out the middle bit that we
     % actually want here
     normals = wholeNormals(numVertices+1:numVertices*2,:);
     tangents = wholeTangents(numVertices+1:numVertices*2,:);
-
-    % test the tangent is close to accurate
-    % the analytical unit tangent should be for an ellipse
-    % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
-    x = linspace(0,2*pi*(1-1/numVertices),numVertices);
-    bigX = linspace(0,2*pi*(1-1/(2*numVertices)),2*numVertices);
-    
-    testT = zeros(2*numVertices,1);
-    testIndex = 1;
-    for i=1:numVertices
-        testT(testIndex) = splineX.breaks(numVertices+i);
-        testT(testIndex+1) = (splineX.breaks(numVertices+i)+splineX.breaks(numVertices+i+1))/2;
-        testIndex = testIndex + 2;
-    end
-    
-    testX = ppval(splineX,testT);
-    testY = ppval(splineY,testT);
-    
-    thetas = atan2(a*testY,b*testX)';
-    thetasOriginal = atan2(a*points(:,2),b*points(:,1))';
-
-    newTangents = findTangentFromSplines(testT',splineX,splineY,1);
-    
-    figure;
-    subplot(1,2,1); hold on;
-    plot(-a*sin(thetasOriginal)./sqrt(a*a*sin(thetasOriginal).^2+b*b*cos(thetasOriginal).^2),'x-')
-    plot(-a*sin(thetas)./sqrt(a*a*sin(thetas).^2+b*b*cos(thetas).^2),'o-')
-    title('thetas')
-    
-    subplot(1,2,2); hold on;
-    plot(tangents(:,1)','x-')
-    plot(newTangents(:,1)','o-')
-    title('tangents x components')
-    
-    figure;
-    subplot(1,2,1); hold on;
-    plot(abs(-a*sin(thetasOriginal)./sqrt(a*a*sin(thetasOriginal).^2+b*b*cos(thetasOriginal).^2)-tangents(:,1)'),'x-')
-    title('x')
-    
-    subplot(1,2,2); hold on;
-    plot(abs(b*cos(thetasOriginal)./sqrt(a*a*sin(thetasOriginal).^2+b*b*cos(thetasOriginal).^2)-tangents(:,2)'),'x-')
-    title('y')
-    
-    figure;
-    subplot(1,2,1); hold on;
-    plot(abs(-a*sin(thetas)./sqrt(a*a*sin(thetas).^2+b*b*cos(thetas).^2)-newTangents(:,1)'),'x-')
-    title('x')
-    
-    subplot(1,2,2); hold on;
-    plot(abs(b*cos(thetas)./sqrt(a*a*sin(thetas).^2+b*b*cos(thetas).^2)-newTangents(:,2)'),'x-')
-    title('y')
-    
-    figure;
-    subplot(1,2,1); hold on;
-    plot(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)'),'x-')
-    %plot(abs(-a*sin(thetas')./sqrt(a*a*sin(thetas').^2+b*b*cos(thetas').^2)-newTangents(:,1)'),'o-')
-    title('x')
-    
-    subplot(1,2,2); hold on;
-    plot(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)'),'x-')
-    title('y')
-    
-    
-    
-    assert(1==0,'break')
 
 %     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
 %     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
