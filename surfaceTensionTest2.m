@@ -19,14 +19,15 @@ end
 
 if nargin <= 1
     % no ellipse parameters specified, use defaults
-    a = 2; % x axis stretch
+    a = 4; % x axis stretch
     b = 2; % y axis stretch
 end
 
+% make the points
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
 %[points,angles] = findVerticesNewMaterialEllipseWithError([0,0],numVertices,a,b,10e-4);
 
-newPoints = points;
+newPoints = points; % we initialise newPoints here as the current points
 
 % plot the starting position of the points
 im = addFrameToTiff(im,points,xmax,ymax,0,1);
@@ -36,12 +37,7 @@ time = 0;
 maxTime = 0.02; % 0.3
 dt = 0.01;
 
-% store the error here, this is only calculated properly if we're only
-% doing one time step otherwise it's not very meaningful
-calculatedError = 0;
-
-% here we store the flows at each vertex and the amount moved in the normal
-% direction
+% here we store anything we would like to plot
 uns = zeros(numVertices,1);
 flows = zeros(numVertices,2);
 
@@ -57,43 +53,56 @@ while count < 1
     
     % to get the tangents and normals at each point, we fit a spline to the
     % polygon which can be differentiated to give us these
-    % we have to add the beginning of points to the end to give the
-    % impression of a complete polygon as we don't store the repeated point
     
-    %points2 = [points;points(1,:)];
-    % alternative, wrap around our polygon three times
+    % to get nice estimates of the tangent at the 'beginning'/'end' of the
+    % polygon list, we extend the points list by tripling it. Then the
+    % central 'points' list has good estimates of the tangent
     points2 = [points;points;points];
     
-    [splineX,splineY] = fitSpline(points2,parametrisation);
-    [splineX2,splineY2] = fitSpline(points2,1);
+    % we fit a spline to these points
+    [splineX,splineY] = fitSpline(points2);
+    
+    % from the spline we calculate a tangent and normals at the polygon
+    % points. We actually only need the normals which are used to move the
+    % points along the normal direction
     [wholeTangents,wholeNormals] = findTangentFromSplines(splineX.breaks,splineX,splineY,1);
     
     % the above gives us normals and tangents for each point going around
     % the polygon three times. Just select out the middle bit that we
     % actually want here
-    normals = wholeNormals(size(points,1)+1:size(points,1)*2,:);
-    tangents = wholeTangents(size(points,1)+1:size(points,1)*2,:);
-    
-%     figure; hold on;
-%     for i=1:25:size(points,1)
-%         plot(points(i,1),points(i,2),'bx')
-%         
-%         plot([points(i,1),points(i,1)+normals(i,1)],[points(i,2),points(i,2)+normals(i,2)],'r-o')
-%         plot([points(i,1),points(i,1)+tangents(i,1)],[points(i,2),points(i,2)+tangents(i,2)],'k-o')
-%     end
-%     xlim([-10,10]);ylim([-10,10])
-    
-    xPoints = ppval(splineX,splineX.breaks(1:numVertices))';
-    yPoints = ppval(splineY,splineY.breaks(1:numVertices))';
+    normals = wholeNormals(numVertices+1:numVertices*2,:);
+    tangents = wholeTangents(numVertices+1:numVertices*2,:);
 
-    % test the interpolation worked correctly
-%     assert(mean(abs(xPoints-points(:,1))) < 10e-14,'Interpolated x points not close to actual points')
-%     assert(mean(abs(yPoints-points(:,2))) < 10e-14,'Interpolated y points not close to actual points')
-% %     
     % test the tangent is close to accurate
     % the analytical unit tangent should be for an ellipse
     % t = (-(a/b)*y,(b/a)*x). With unit tangent being t./||t||
     x = linspace(0,2*pi*(1-1/numVertices),numVertices);
+    bigX = linspace(0,2*pi*(1-1/numVertices),2*numVertices);
+    
+    figure; hold on;
+    plot(x,ones(1,numel(x)),'x-');
+    plot(bigX,ones(1,numel(bigX)),'o-');
+    plot(splineX.breaks*2*pi,ones(1,numel(splineX.breaks)),'s-')
+    
+    testX = zeros(2*numVertices,1);
+    for i=1:numel(testX)
+    end
+    
+    
+    newTangents = findTangentFromSplines(x,splineX,splineY,1);
+    
+    figure;
+    subplot(1,2,1)
+    plot(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)'),'x-')
+    title('x')
+    
+    subplot(1,2,2)
+    plot(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)'),'x-')
+    title('y')
+    
+    
+    
+    assert(1==0,'break')
 
 %     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
 %     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
@@ -204,8 +213,8 @@ while count < 1
     
     result = uns;
     
-%     assert(abs(newArea - currentArea) < 10e-5,['Polygon changed area when calculating surface tension, was ',num2str(currentArea),' now ',num2str(newArea)]);
-%     
+    assert(abs(newArea - currentArea) < 10e-5,['Polygon changed area when calculating surface tension, was ',num2str(currentArea),' now ',num2str(newArea)]);
+    
     
 %     figure;
 %     plot(angles,errors,'x-')
