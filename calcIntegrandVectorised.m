@@ -33,8 +33,6 @@ rotatedTangents = (r0rotation*tangents')';
 rotatedUnitTangents = (r0rotation*unitTangents')';
 
 if plotYes == 1
-    norm(tangents(1,:))
-    norm(rotatedTangents(1,:))
     figure; hold on;
     plot(points(:,1),points(:,2),'x-')
     for i = 1:25:size(points,1)
@@ -58,9 +56,9 @@ for i=1:numel(integrands)
     absDs = sqrt(rotatedTangents(i,1)^2+rotatedTangents(i,2)^2);
     ds(i) = absDs;
     
-    %absDs = 1;
+    absDs = 1;
     
-    integrandsX(i) = integrandX*absDs;
+    integrandsX(i) = integrandX*absDs/(-2*pi);
    
     Jexpressions(i) = Jexpression;
     
