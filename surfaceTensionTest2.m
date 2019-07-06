@@ -1,4 +1,4 @@
-function result = surfaceTensionTest2(numVertices,a,b)
+function [area,areaRatio] = surfaceTensionTest2(numVertices,a,b,dt)
 
 result = 0;
 
@@ -19,7 +19,7 @@ end
 
 if nargin <= 1
     % no ellipse parameters specified, use defaults
-    a = 4; % x axis stretch
+    a = 10; % x axis stretch
     b = 2; % y axis stretch
 end
 
@@ -34,19 +34,25 @@ im = addFrameToTiff(im,points,xmax,ymax,0,1);
 
 % we will run the algorithm for so many time steps and show the output
 time = 0;
-maxTime = 0.02; % 0.3
-dt = 0.01;
+maxTime = 1; % 0.3
+%dt = 0.1;
+numIterations = maxTime/dt;
 
 % here we store anything we would like to plot
-uns = zeros(numVertices,1);
-flows = zeros(numVertices,2);
+% uns = zeros(numVertices,1);
+% flows = zeros(numVertices,2);
+area = zeros(numIterations+1,1);
+areaRatio = zeros(numIterations+1,1);
+
+area(1) = polyarea(points(:,1),points(:,2));
+areaRatio(1) = 1;
 
 disp('starting loop')
 count = 0;
-%while time < maxTime
+while time < maxTime
     disp(['time is ',num2str(time),' out of ',num2str(maxTime)])
 
-while count < 1
+%while count < 1
     count = count + 1;
     
     errors = zeros(1,size(points,1));
@@ -88,54 +94,31 @@ while count < 1
         % we must first calculate the rotation matrix which brings the
         % point ii to have normal (1,0) and tangent (0,1)
         
-        % the correctedIndex is the index
         rotMatrix = [[tangents(ii,2),-tangents(ii,1)];[-normals(ii,2),normals(ii,1)]];
-        invRotMatrix = [[normals(ii,1),tangents(ii,1)];[normals(ii,2),tangents(ii,2)]];
-%         
-        if count > 1000000 && ii <= 2
-            un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,1,0,a,b);
-        else
-            un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0,0,a,b);
-        end
-        %un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0,0,a,b);
+        %invRotMatrix = [[normals(ii,1),tangents(ii,1)];[normals(ii,2),tangents(ii,2)]];
 
-%         if ii==1
-%             disp('doing some checks')
-%             t = linspace(0,1,10000);
-%             
-%             integrand = calcIntegrandVectorised(t,points(ii,:),rotMatrix,splineX,splineY,1,1,a,b);
-%         end
+        % calculate the integral, which gives us the size of the flow in
+        % the normal direction at the current point, points(ii,:)
+        un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0);
         
-        uns(ii) = un;
-        
-        % this has to be applied in the direction of the outward pointing
-        % normal      
-%         flow = -un.*normals(ii,:);
-%         flows(ii,:) = flow;
-
-        % we have the flow along the normal direction.
+        % apply the flow along the outward pointing normal direction
         
         newPoints(ii,:) = points(ii,:) + dt*un*normals(ii,:);
-        flows(ii,:) =  dt*un*normals(ii,:);
         
-        errors(ii) = findDist(points(ii,:),newPoints(ii,:));
-        errors(ii) = norm(flows(ii,:));
+        % save any information we want to know
+        %uns(ii) = un;
+        %flows(ii,:) =  dt*un*normals(ii,:);
+        
+%         errors(ii) = findDist(points(ii,:),newPoints(ii,:));
+%         errors(ii) = norm(flows(ii,:));
       
     end
 
     % the error is just un really
-    errors;
-    calculatedError = mean(errors);
+%     errors;
+%     calculatedError = mean(errors);
     %a = [min(errors),mean(errors),max(errors)];
     
-    if count > 10000000 || time == maxTime
-        figure; hold on;
-        plot(points(:,1),points(:,2),'x-')
-        %plot(newPoints(:,1),newPoints(:,2)','o-')
-        xlim([-10,10]);ylim([-10,10]);
-        title(count)
-    end
-
     % move points to the new points
     points = newPoints;
     
@@ -146,8 +129,8 @@ while count < 1
      
     time = time + dt;
     
-    if 1
-    %if count > 10000000
+    %if 1
+    if count > 10000000
         figure;
         plot(angles,uns)
         xticks(0:pi/2:2*pi)
@@ -177,26 +160,16 @@ while count < 1
     % average)
     
     newArea = polyarea(points(:,1),points(:,2));
-    count
-    result = abs(1-(newArea/currentArea));
+    newAreaRatio = abs(1-(newArea/currentArea));
     
-    result = uns;
+    area(count+1) = newArea;
+    areaRatio(count+1) = newAreaRatio;
     
     assert(abs(newArea - currentArea) < 10e-5,['Polygon changed area when calculating surface tension, was ',num2str(currentArea),' now ',num2str(newArea)]);
-    
-    
-%     figure;
-%     plot(angles,errors,'x-')
-%     
-%     figure;
-%     plot(angles,abs(cos(angles)-normals(1:end-1,1)))
-%     title('x component')
-%     
-%     figure;
-%     plot(angles,abs(sin(angles)-normals(1:end-1,2)))
-%     title('y component')
 
 end
+
+result = area;
 
 if numel(im) > 0
     saveLocation = 'testEllipse.tif';
@@ -208,18 +181,13 @@ end
 
 end
 
-function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes,normalYes,a,b)
+function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes)
 % we will be returning un
 % we want to use integral. So we need a function handle.
 
-fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes,normalYes,a,b);
+fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes);
 
 result = integral(fun,0,1);
-
-fun5 = @(z) (2*pi*a*(a^2*sin(2*pi*z).^2 + b^2*cos(2*pi*z).^2).^(1/2).*(cos(2*pi*z) - 1).*((a^2.*sin(2*pi*z).^2.*(b^2*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) - (b^2*cos(2*pi*z).^2.*(b^2.*sin(2*pi*z).^2 - a^2.*(cos(2*pi*z) - 1).^2))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2) + (4*a^2*b^2.*cos(2*pi*z).*sin(2*pi*z).^2.*(cos(2*pi*z) - 1))./(a^2.*sin(2*pi*z).^2 + b^2.*cos(2*pi*z).^2)))./(b^2.*sin(2*pi*z).^2 + a^2.*(cos(2*pi*z) - 1).^2).^2;
-
-
-%actualIntegralX = integral(fun5,0,1)
 
 end
 
