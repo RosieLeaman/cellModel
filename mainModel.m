@@ -40,7 +40,7 @@
 % saves the model variable to a file called 'results.mat'
 
 
-function mainModel(plotYes,settings,initPositions)
+function model = mainModel(plotYes,settings,initPositions)
 
 % we can input either settings or both settings and initial positions
 
@@ -102,7 +102,7 @@ if nargin < 2
     
     for i=1:size(initPositions.BAMlocs,1)
         initPositions.BAMlocs(i,:)
-        vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(i,:),settings.polygonSides,1,settings.proteinAddedNewInsertion);
+        vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(i,:),settings.polygonSides,0,settings.proteinAddedNewInsertion);
         initPositions.proteinVertices{i} = vertices;
         
         % note here we need to use settings.xyz as the plain non
@@ -110,7 +110,7 @@ if nargin < 2
     end
 
     for i=1:size(initPositions.LptDlocs,1)
-        vertices = findVerticesNewMaterialCircle(initPositions.LptDlocs(i,:),settings.polygonSides,1,settings.LPSAddedNewInsertion);
+        vertices = findVerticesNewMaterialCircle(initPositions.LptDlocs(i,:),settings.polygonSides,0,settings.LPSAddedNewInsertion);
         initPositions.lpsVertices{i} = vertices;
     end
     
@@ -171,28 +171,16 @@ model.lpsVertices = initPositions.lpsVertices;
 
 model.settings = settings;
 
-% make a pretty plot (if requested)
-if plotYes == 1
-    fig = figure;
-    %hold on;
-
-    visualiseSimple(model)
-    
-    saveas(fig,[saveLocation,'startPoint.png']);
-    close(fig);
-end
-
 % while time is less than max time
 count = 0;
 prematureEnd = 0;
 
-fig = figure;
-visualiseSimple(model);
-title(['time is ',num2str(time)])
-saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
-close(fig)
-
 testFlag = 0;
+
+insRateProtein
+insRateLPS
+proteinAddedNewInsertion
+LPSAddedNewInsertion
 
 while time < maxTime && prematureEnd == 0
     
@@ -230,11 +218,24 @@ while time < maxTime && prematureEnd == 0
         newBAMloc(1) = newBAMloc(1)*2*currentMaxLen-currentMaxLen;
         newBAMloc(2) = newBAMloc(2)*membraneCircumference;
         
-        newBAMIndex = size(model.BAMlocs,1) + 1;
+        % we do not allow the insertion if it is within distance 1 of an
+        % already existing BAM
         
-        model.BAMlocs(newBAMIndex,:) = newBAMloc;
+        allowedInsertion = 1;
         
-        newBAMlocs = newBAMloc;
+        for i=1:size(model.BAMlocs,1)
+            if findDist(model.BAMlocs(i,:),[newBAMloc(1),newBAMloc(2)]) < model.settings.BAMsize
+                allowedInsertion = 0;
+            end
+        end
+        
+        if allowedInsertion == 1
+            newBAMIndex = size(model.BAMlocs,1) + 1;
+
+            model.BAMlocs(newBAMIndex,:) = newBAMloc;
+
+            newBAMlocs = newBAMloc;
+        end
         
     end
        
@@ -253,6 +254,7 @@ while time < maxTime && prematureEnd == 0
             % we pick a random angle in [0,2pi)
             theta = rand(1)*2*pi;
             
+            % add twice BAMsize for space for LptD as well
             newLptDlocs(newLptDIndex,:) = [model.BAMlocs(BAM,1)+BAMsize*cos(theta),model.BAMlocs(BAM,2)+BAMsize*sin(theta)];
             
             newLptDIndex = newLptDIndex + 1;
@@ -371,13 +373,9 @@ while time < maxTime && prematureEnd == 0
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newBAMlocs,1)
             newIndex = numel(model.proteinVertices)+1;
-            vertices = findVerticesNewMaterialCircle(newBAMlocs(j,:),polygonSides,1,proteinAddedNewInsertion);
+            vertices = findVerticesNewMaterialCircle(model.BAMlocs(end-j+1,:),polygonSides,0,proteinAddedNewInsertion);
             model.proteinVertices{newIndex}(:,:) = vertices;
 
-            if plotYes == 1
-                plot(newBAMlocs(j,1),newBAMlocs(j,2),'xk','linewidth',2)
-            end
-           
         end
     end
     
@@ -392,21 +390,12 @@ while time < maxTime && prematureEnd == 0
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newLptDlocs,1)
             newIndex = numel(model.lpsVertices)+1;
-            vertices = findVerticesNewMaterialCircle(newLptDlocs(j,:),polygonSides,1,LPSAddedNewInsertion);
             
-%             % test whether we already have some LPS vertices or not
-%             if numel(model.lpsVertices) == 0
-%                 newLptDIndex = 1;
-%             else
-%                 newLptDIndex = numel(model.lpsVertices) + 1;
-%             end
-            
-            model.lpsVertices{newIndex}(:,:) = vertices;
+            % we want to use the moved position of the new lptd, not the
+            % original position, so use the model.LptDlocs(end-j+1)
+            vertices = findVerticesNewMaterialCircle(model.LptDlocs(end-j+1,:),polygonSides,0,LPSAddedNewInsertion);
 
-            if plotYes == 1
-                plot(newLptDlocs(j,1),newLptDlocs(j,2),'dk','linewidth',2)
-            end
-           
+            model.lpsVertices{newIndex}(:,:) = vertices;
         end
     end
         
@@ -448,15 +437,16 @@ while time < maxTime && prematureEnd == 0
     % note that the variable 'tooClose', here set to 1, should be replaced
     % at some point to become a model parameter
     
+    plotSplit = 0;
     if splitFlag == 1
     
-        [problems,newModel] = checkPolygonDistances2(model,1);
+        [problems,newModel] = checkPolygonDistances2(model,1,0);
 
         if problems == 1
-            disp('we have located a problem')
+            %disp('we have located a problem')
             % we have regions that are too close
             % snap a picture
-            if plotYes == 1
+            if plotSplit == 1
                 fig = figure;
                 visualiseSimple(model)
 
@@ -467,27 +457,11 @@ while time < maxTime && prematureEnd == 0
         
             % resolve the issues
 
-            try
-                newModel = resolveBoundaryIssues(model,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS);
-
-                % replace the model with the new vertices
-                model = newModel;
-                model.proteinVertices
-                testFlag = 1;
-            catch e
-                disp('There was an error')
-                % 2 means stderr not stdout (1)
-                fprintf(2,'The identifier was: %s\n',e.identifier);
-                fprintf(2,'There was an error! The message was: %s \n',e.message);
-                
-                save([saveLocation,'-error.mat'])
-                prematureEnd = 1;
-                newModel = resolveBoundaryIssues(model,problemsProteinProtein,problemsLPSLPS,problemsProteinLPS,problemsProtein,problemsLPS);
-            end
+            model = newModel;
         
             % take a new picture of the resolution
 
-            if plotYes == 1
+            if plotSplit == 1
                 fig = figure;
                 visualiseSimple(model)
 
