@@ -30,10 +30,20 @@ points = zeros(numel(t),2);
 points(:,1) = ppval(splineX,t);
 points(:,2) = ppval(splineY,t);
 
+if plotYes == 1
+    disp('before rotate')
+    points(1,:)
+end
+
 % we then need to rotate them all to get the correct dx, dy
 % unfortunately our points matrix has points as rows, not column vectors,
 % so we have to transpose first and then transpose back to keep consistency
 points = (r0rotation*points')';
+
+if plotYes == 1
+    disp('after rotate')
+    points(1,:)
+end
 
 % we must also rotate r0
 r0 = (r0rotation*r0')';
@@ -42,9 +52,19 @@ r0 = (r0rotation*r0')';
 % splines.
 [tangents,~] = findTangentFromSplines(t,splineX,splineY,0);
 
+if plotYes == 1
+    disp('tangents')
+    tangents(1,:)
+end
+
 unitTangents = tangents;
 for i=1:size(unitTangents,1)
     unitTangents(i,:) = unitTangents(i,:)./norm(unitTangents(i,:));
+end
+
+if plotYes == 1
+    disp('unit tangents')
+    unitTangents(1,:)
 end
 
 % these also have to be rotated the same as the points
@@ -55,12 +75,21 @@ end
 rotatedUnitTangents = (r0rotation*unitTangents')';
 
 if plotYes == 1
+    disp('rotated unit tangents')
+    rotatedUnitTangents(1,:)
+end
+
+if plotYes == 1
     % plot the tangents to check they look legit
     figure; hold on;
     plot(points(:,1),points(:,2),'x-')
     for i = 1:25:size(points,1)
         plot([points(i,1),points(i,1)+rotatedUnitTangents(i,1)],[points(i,2),points(i,2)+rotatedUnitTangents(i,2)],'o-')
     end
+    title('points and tangents')
+    figure; hold on;
+    plot(points(:,1),points(:,2),'x-')
+    title('points')
 end
 
 % then we can work out the integrand easy
@@ -82,7 +111,7 @@ for i=1:numel(integrands)
    
 end
 
-if plotYes == 1
+if plotYes == 2
     figure;
     plot(integrands)
 end
@@ -90,7 +119,7 @@ end
 end
 
 function integrandX = calcIntegrand(r0,rs,t)
-% in the case where we rotate, we only need to calculate integrandX 
+% in the case where we rotate, we only need to calculate integrandX
 
 dr = rs - r0;
 
@@ -102,10 +131,22 @@ integrandX = (dr(1)/(square.^2))*Jexpression;
 
 %integrandY = (dr(2)/(square.^2))*Jexpression;
 
+% if abs(square) <= 10e-16
+%     % we have somehow managed to pick the exact same point
+%     % return zero
+%     integrandX = 0;
+% end
+
 end
 
 function result = calcJexpression(dX,dY,tX,tY)
 
-result = tX*tX*(dY*dY-dX*dX) - 4*tX*tY*dX*dY + tY*tY*(dX*dX-dY*dY);
+%result = tX*tX*(dY*dY-dX*dX) - 4*tX*tY*dX*dY + tY*tY*(dX*dX-dY*dY);
+
+result = (tX*tX-tY*tY)*(dY*dY-dX*dX) - 4*tX*tY*dX*dY;
+
+%result = (tX - tY)*(tX + tY)*(dY - dX)*(dY + dX) - 4*tX*tY*dX*dY;
+
+%result = (tY*(dX+dY)-tX*(dY-dX))*(tY*(dX-dY)-tX*(dX+dY));
 
 end

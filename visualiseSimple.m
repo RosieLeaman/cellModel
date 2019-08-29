@@ -10,7 +10,7 @@ end
 
 if numel(model.proteinVertices) > 0
     for poly = 1:numel(model.proteinVertices)
-    plot(model.proteinVertices{poly}(:,1),model.proteinVertices{poly}(:,2),'bx')
+        plot(model.proteinVertices{poly}(:,1),model.proteinVertices{poly}(:,2),'bx')
     end
 end
 

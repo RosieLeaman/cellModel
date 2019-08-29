@@ -18,14 +18,13 @@ end
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
 %[points,angles] = findVerticesNewMaterialEllipseWithError([0,0],numVertices,a,b,10e-4);
 
-
  % to get nice estimates of the tangent at the 'beginning'/'end' of the
 % polygon list, we extend the points list by tripling it. Then the
 % central 'points' list has good estimates of the tangent
-points2 = [points;points;points];
+pointsTripled = [points;points;points];
 
 % we fit a spline to these points
-[splineX,splineY] = fitSpline(points2);
+[splineX,splineY] = fitSpline(pointsTripled);
 
 % from the spline we calculate a tangent and normals at the polygon
 % points. We actually only need the normals which are used to move the

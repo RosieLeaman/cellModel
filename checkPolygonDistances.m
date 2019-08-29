@@ -15,7 +15,12 @@ for proteinBlob1 = 1:numel(model.proteinVertices)
         % to any vertices in proteinBlob2
         for i=1:size(model.proteinVertices{proteinBlob1},1)
             x = model.proteinVertices{proteinBlob1}(i,:);
-            distances = model.proteinVertices{proteinBlob2} - x;
+            try
+                distances = model.proteinVertices{proteinBlob2} - x;
+            catch
+                model.proteinVertices
+                assert(1==0);
+            end
             distances = distances.^2;
             distances = sum(distances,2);
             

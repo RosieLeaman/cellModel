@@ -216,10 +216,14 @@ end
 % now we can delete everything in haveToBeDeleted and we should have no
 % copies
 
-haveToBeDeletedLPS
+haveToBeDeletedProtein;
+
+newModel.proteinVertices;
 
 newModel.proteinVertices(haveToBeDeletedProtein) = [];
 newModel.lpsVertices(haveToBeDeletedLPS) = [];
+
+newModel.proteinVertices;
 
 % finally we add in the new regions
 
@@ -235,6 +239,11 @@ for i=1:numel(newVerticesLPS)
     newModel.lpsVertices{index} = newVerticesLPS{i};
     index = index + 1;
 end
+
+disp('BEFORE')
+model.proteinVertices
+disp('RESOLVED')
+newModel.proteinVertices
 
 end
 

@@ -1,4 +1,4 @@
-function [area,areaRatio] = surfaceTensionTest2(numVertices,a,b,dt)
+function [flows,position,allTangents] = surfaceTensionTest2(numVertices,a,b,dt)
 
 result = 0;
 
@@ -8,8 +8,8 @@ format long
 % initialise an image
 im = {};
 idx = 1; %idx is the index of the current image in our future tiff file
-xmax = 10;
-ymax = 10;
+xmax = 4;
+ymax = 4;
 
 format long
 % if there are no vertices input we just use a default value
@@ -19,13 +19,17 @@ end
 
 if nargin <= 1
     % no ellipse parameters specified, use defaults
-    a = 10; % x axis stretch
-    b = 2; % y axis stretch
+    a = 4; % x axis stretch
+    b = 4; % y axis stretch
 end
 
 % make the points
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
 %[points,angles] = findVerticesNewMaterialEllipseWithError([0,0],numVertices,a,b,10e-4);
+
+points(10,:) = 1.05*points(10,:);
+points(11,:) = 1.2*points(11,:);
+points(12,:) = 1.05*points(12,:);
 
 newPoints = points; % we initialise newPoints here as the current points
 
@@ -34,21 +38,27 @@ im = addFrameToTiff(im,points,xmax,ymax,0,1);
 
 % we will run the algorithm for so many time steps and show the output
 time = 0;
-maxTime = 1; % 0.3
-%dt = 0.1;
+maxTime = 2; % 0.3
+dt = 0.01;
 numIterations = maxTime/dt;
 
 % here we store anything we would like to plot
-% uns = zeros(numVertices,1);
-% flows = zeros(numVertices,2);
+uns = zeros(numVertices,1);
+flows = zeros(numIterations+1,numVertices,2);
 area = zeros(numIterations+1,1);
 areaRatio = zeros(numIterations+1,1);
+position = zeros(numIterations+1,numVertices,2);
+position(1,:,:) = points;
+allTangents = zeros(numIterations+1,numVertices,2);
 
 area(1) = polyarea(points(:,1),points(:,2));
-areaRatio(1) = 1;
+areaRatio(1) = 0;
 
 disp('starting loop')
 count = 0;
+
+%figure;hold on; % used for plotting all vertices over time
+
 while time < maxTime
     disp(['time is ',num2str(time),' out of ',num2str(maxTime)])
 
@@ -78,6 +88,8 @@ while time < maxTime
     % actually want here
     normals = wholeNormals(numVertices+1:numVertices*2,:);
     tangents = wholeTangents(numVertices+1:numVertices*2,:);
+    
+    allTangents(count,:,:) = tangents;
 
 %     assert(mean(abs(-a*sin(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,1)')) < 10e-14,'Estimated tangent x component not close to correct')
 %     assert(mean(abs(b*cos(x)./sqrt(a*a*sin(x).^2+b*b*cos(x).^2)-tangents(:,2)')) < 10e-14,'Estimated tangent y component not close to correct')
@@ -101,13 +113,34 @@ while time < maxTime
         % the normal direction at the current point, points(ii,:)
         un = calculateIntegral(points(ii,:),rotMatrix,splineX,splineY,0);
         
+        try
+            assert(~isnan(un),'oops')
+        catch
+            fid = fopen('errorlog.txt','wt');
+            fprintf(fid, 'Error: integral returned NaN');
+            fclose(fid);
+            if numel(im) > 0
+                saveLocation = 'testEllipse.tif';
+                imwrite(im{1},saveLocation)
+                for i=2:numel(im)
+                    imwrite(im{i},saveLocation,'WriteMode','append')
+                end
+            end
+
+            % figure;
+            % plot(points(:,1),points(:,2),'x-')
+
+            save('test.mat')
+            assert(1==0)
+        end
+        
         % apply the flow along the outward pointing normal direction
         
-        newPoints(ii,:) = points(ii,:) + dt*un*normals(ii,:);
+        newPoints(ii,:) = points(ii,:) + 50*dt*un*normals(ii,:);
         
         % save any information we want to know
-        %uns(ii) = un;
-        %flows(ii,:) =  dt*un*normals(ii,:);
+        uns(ii) = un;
+        flows(count,ii,:) =  50*dt*un*normals(ii,:);
         
 %         errors(ii) = findDist(points(ii,:),newPoints(ii,:));
 %         errors(ii) = norm(flows(ii,:));
@@ -122,7 +155,11 @@ while time < maxTime
     % move points to the new points
     points = newPoints;
     
-    if mod(count,5) == 0
+%     if mod(count,10)==1
+%         plot(points(:,1),points(:,2),'x-')
+%     end
+    
+    if mod(count,10)==1
     %if 1
         im = addFrameToTiff(im,points,xmax,ymax,time,1);
     end
@@ -165,8 +202,61 @@ while time < maxTime
     area(count+1) = newArea;
     areaRatio(count+1) = newAreaRatio;
     
-    assert(abs(newArea - currentArea) < 10e-5,['Polygon changed area when calculating surface tension, was ',num2str(currentArea),' now ',num2str(newArea)]);
+    position(count+1,:,:) = points;
 
+    try
+        assert(abs(1-newArea/currentArea) < 10e-5,['Polygon changed area when calculating surface tension, was ',num2str(currentArea),' now ',num2str(newArea)]);
+    catch
+        newArea
+        currentArea
+        1-newArea/currentArea
+        
+        figure;
+        plot(points(:,1),points(:,2),'x-')
+        
+        figure;
+        plot(angles,uns)
+        xticks(0:pi/2:2*pi)
+        xticklabels({'0','\pi/2','\pi','3\pi/2','2\pi'})
+        ylabel('un');xlabel('angle')
+        title(count)
+        
+        result = uns;
+
+        figure; hold on;
+        plot(angles,flows(:,1))
+        plot(angles,flows(:,2))
+        xticks(0:pi/2:2*pi)
+        xticklabels({'0','\pi/2','\pi','3\pi/2','2\pi'})
+        legend('x','y')
+        ylabel('flows after rotation');xlabel('angle')
+        grid minor;
+        title(count)
+        
+        points(1,:)
+        flows(1,:)
+        uns(1)
+        
+        if numel(im) > 0
+            saveLocation = 'testEllipse.tif';
+            imwrite(im{1},saveLocation)
+            for i=2:numel(im)
+                imwrite(im{i},saveLocation,'WriteMode','append')
+            end
+        end
+
+        % figure;
+        % plot(points(:,1),points(:,2),'x-')
+
+        save('test.mat')
+        
+        fid = fopen('errorlog.txt','wt');
+        fprintf(fid, 'Error: area change');
+        fclose(fid);
+
+        assert(1==0)
+        
+    end
 end
 
 result = area;
@@ -179,6 +269,11 @@ if numel(im) > 0
     end
 end
 
+% figure;
+% plot(points(:,1),points(:,2),'x-')
+
+save('test.mat')
+
 end
 
 function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes)
@@ -188,6 +283,16 @@ function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes)
 fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes);
 
 result = integral(fun,0,1);
+
+try
+    assert(~isnan(result),'Integral returned NaN');
+catch
+    r0
+    r0rotation
+    fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,1);
+
+    result = integral(fun,0,1);
+end
 
 end
 
@@ -199,9 +304,10 @@ function [image] = addFrameToTiff(image,points,xmax,ymax,time,closeFrameYes)
     fig = figure;
     plot(points(:,1),points(:,2),'x');
     xlim([-xmax,xmax]);ylim([-ymax,ymax]);
-    %xlim([3.6,4]);ylim([-1,1]);
+    xlim([3.5,4.5]);ylim([-0.5,0.5]);
     
-    text(-xmax+1,-ymax+1,num2str(time))
+    %text(-xmax+1,-ymax+1,num2str(time))
+    text(1.6,-0.4,num2str(time))
 
     frame = getframe(fig);
     image{idx} = frame2im(frame);
