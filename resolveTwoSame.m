@@ -126,15 +126,15 @@ N2 = find(test2 > 1);
 
 if numel(N1) == 0 && numel(N2) > 0
     % polygon 1 is contiguous and 2 is not
-    disp('case1')
+    %disp('case1')
     newVertices = [vertices2(notProblemVertices2(1:N2),:);vertices1(notProblemVertices1,:);vertices2(notProblemVertices2(N2+1:end),:)];
 elseif numel(N2) == 0 && numel(N1) > 0
     % opposite
-    disp('case2')
+    %disp('case2')
     newVertices = [vertices1(notProblemVertices1(1:N1),:);vertices2(notProblemVertices2,:);vertices1(notProblemVertices1(N1+1:end),:)];
 else
     % neither is
-    disp('case')
+    %disp('case')
     newVertices = [vertices1(notProblemVertices1(1:N1),:);vertices2(notProblemVertices2(N2+1:end),:);vertices2(notProblemVertices2(1:N2),:);vertices1(notProblemVertices1(N1+1:end),:)];
 end
 
