@@ -39,7 +39,6 @@
 % NO argument outputs
 % saves the model variable to a file called 'results.mat'
 
-
 function model = mainModel(plotYes,settings,initPositions)
 
 % we can input either settings or both settings and initial positions
@@ -167,6 +166,10 @@ model.LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
 model.proteinVertices = initPositions.proteinVertices;
 model.lpsVertices = initPositions.lpsVertices;
 
+halfLen = currentMaxLen/2;
+model.rightEdge = [halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
+model.leftEdge = [-halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
+
 % save the settings used to construct the model in model as well
 
 model.settings = settings;
@@ -215,7 +218,7 @@ while time < maxTime && prematureEnd == 0
         % adjust the x one to be uniform between -currentMaxLen and
         % currentMaxLen
         % and y one to be uniform between 0 and membraneCircumference
-        newBAMloc(1) = newBAMloc(1)*2*currentMaxLen-currentMaxLen;
+        newBAMloc(1) = newBAMloc(1)*2*halfLen-halfLen;
         newBAMloc(2) = newBAMloc(2)*membraneCircumference;
         
         % we do not allow the insertion if it is within distance 1 of an
@@ -306,6 +309,23 @@ while time < maxTime && prematureEnd == 0
     if testFlag == 1
         disp('AFTER MOVING LPS IS: ')
         model.proteinVertices
+    end
+    
+    % move the edge vertices
+    for j=1:100
+        flow = calcFlow(model.rightEdge(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+
+        newPos = findNewVertexPosition(model.rightEdge(j,:),flow,dt,membraneCircumference);
+
+        model.rightEdge(j,:) = newPos;
+    end
+    
+    for j=1:100
+        flow = calcFlow(model.leftEdge(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+
+        newPos = findNewVertexPosition(model.leftEdge(j,:),flow,dt,membraneCircumference);
+
+        model.leftEdge(j,:) = newPos;
     end
     
     

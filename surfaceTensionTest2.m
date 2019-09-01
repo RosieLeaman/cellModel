@@ -27,9 +27,9 @@ end
 [points,angles] = findVerticesNewMaterialEllipse([0,0],numVertices,a,b);
 %[points,angles] = findVerticesNewMaterialEllipseWithError([0,0],numVertices,a,b,10e-4);
 
-points(10,:) = 1.05*points(10,:);
-points(11,:) = 1.2*points(11,:);
-points(12,:) = 1.05*points(12,:);
+% points(10,:) = 1.05*points(10,:);
+% points(11,:) = 1.2*points(11,:);
+% points(12,:) = 1.05*points(12,:);
 
 newPoints = points; % we initialise newPoints here as the current points
 
@@ -59,10 +59,10 @@ count = 0;
 
 %figure;hold on; % used for plotting all vertices over time
 
-while time < maxTime
-    disp(['time is ',num2str(time),' out of ',num2str(maxTime)])
+%while time < maxTime
+    %disp(['time is ',num2str(time),' out of ',num2str(maxTime)])
 
-%while count < 1
+while count < 1
     count = count + 1;
     
     errors = zeros(1,size(points,1));

@@ -16,57 +16,6 @@ end
 vertices1Copy = vertices1;
 vertices2Copy = vertices2;
 
-% all that we know about these polygons is that they are close in at least
-% one place. We need to find all the vertices where they are close.
-% first we have to find the problem vertices. We store their INDICES.
-
-% problemVertices1 = [];
-% problemVertices2 = [];
-% 
-% index1 = 1;
-% index2 = 1;
-% 
-% for i=1:size(vertices1,1)
-%     x = vertices1(i,:);
-%     for j=1:size(vertices2,1)
-%         y = vertices2(j,:);
-%         if findDist(x,y) < 1
-%             disp('found one')
-%             % if they are too close, add the vertices as a problem
-%             % need to check whether this vertex has already been added and
-%             % not add it again
-%             if numel(problemVertices1) == 0
-%                 problemVertices1(index1) = i;
-%                 index1 = index1 + 1;
-%             elseif ~ismember(problemVertices1,i)
-%                 problemVertices1(index1) = i;
-%                 index1 = index1 + 1;
-%             end
-%             
-%             if numel(problemVertices2) == 0
-%                 problemVertices2(index2) = j;
-%                 index2 = index2 + 1;
-%             elseif ~ismember(problemVertices2,j)
-%                 problemVertices2(index2) = j;
-%                 index2 = index2 + 1;
-%             end
-%         end
-%     end
-% end
-
-% problemVertices1
-% problemVertices2
-
-% sort the two arrays
-
-% problemVertices1 = sort(problemVertices1);
-% problemVertices2 = sort(problemVertices2);
-
-% there are two different options.  Either the polygons intersect, or they
-% are approaching each other. These can be differentiated by whether there
-% is a large jump in the problem indices
-
-
 % make the polygons larger by 1. Fit a spline, obtain the normal,
 % and move all the points in vertices1Copy and vertices2Copy out by
 % 1*normal. Then the new polygons will intersect, and the same code

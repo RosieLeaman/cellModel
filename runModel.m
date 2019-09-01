@@ -4,7 +4,7 @@ function runModel()
 
 settings.polygonSides = 1000;
 settings.membraneCircumference = 500*pi;
-settings.currentMaxLen = 1000;
+settings.currentMaxLen = 2000;
 settings.BAMsize = 1;
 settings.time = 0;
 settings.dt = 0.01;
@@ -12,14 +12,12 @@ settings.maxTime = 5;
 settings.surfaceTensionFlag = 0;
 settings.surfaceTensionStrength = 0;
 settings.splitFlag = 1;
-settings.plotEvery = 25;
+settings.plotEvery = 5;
 
-settings.insRateProtein = 100;
-settings.insRateLPS = 100;
-settings.insRateBAM = 0.1;
-settings.insRateLptD = 0.1;
-
-% test with different BAM insertion strengths
+settings.insRateProtein = 1500;
+settings.insRateLPS = 1500;
+settings.insRateBAM = 1;
+settings.insRateLptD = 1;
 
 % set up save location and file structures
 % find our current directory
@@ -37,18 +35,14 @@ bigSaveFolder = [currentFolder,'/test',timeString];
 
 % set up initial locations
 
-initPositions.BAMlocs = [[100,100]];
+%initPositions.BAMlocs = [[100,100]];
 
-% the amount of material determines the size of the circle as amount =
-% pi*r^2
-radius = 2;
-vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(1,:),settings.polygonSides,1,radius);
-initPositions.proteinVertices{1} = vertices;
-
+initPositions.BAMlocs = [];
+initPositions.proteinVertices = {};
 initPositions.LptDlocs = [];
 initPositions.lpsVertices = {};
 
-for i = 10000
+for i = linspace(1500,15000,3)
     i
     % set up the settings that vary
     settings.insRateProtein = i;
@@ -56,6 +50,12 @@ for i = 10000
     settings.saveLocation = [bigSaveFolder,'/test-proteinInsertionRate',num2str(i)];
 
     % run the model with given settings
-
-    mainModel(1,settings,initPositions);
+    
+    try
+        model = mainModel(1,settings,initPositions);
+        visualiseSimple(model);
+    catch e
+        e
+        visualiseSimple(model);
+    end
 end

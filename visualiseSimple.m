@@ -23,3 +23,7 @@ if numel(model.lpsVertices) > 0
         plot(model.lpsVertices{poly}(:,1),model.lpsVertices{poly}(:,2),'rx')
     end
 end
+
+% plot the left and right edges of bacteria
+plot(model.rightEdge(:,1),model.rightEdge(:,2),'kx-')
+plot(model.leftEdge(:,1),model.leftEdge(:,2),'kx-')
