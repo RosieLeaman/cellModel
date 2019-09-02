@@ -159,20 +159,33 @@ plotEvery = settings.plotEvery;
 
 % all information will be saved in the model struct
 
-model.BAMlocs = initPositions.BAMlocs;
-model.BAMlocsInit = initPositions.BAMlocs; % store initial BAMlocs
-model.LptDlocs = initPositions.LptDlocs;
-model.LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
-model.proteinVertices = initPositions.proteinVertices;
-model.lpsVertices = initPositions.lpsVertices;
+BAMlocs = initPositions.BAMlocs;
+BAMlocsInit = initPositions.BAMlocs; % store initial BAMlocs
+LptDlocs = initPositions.LptDlocs;
+LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
+proteinVertices = initPositions.proteinVertices;
+lpsVertices = initPositions.lpsVertices;
 
+% save initial positions of everything
+model.proteinVertices = proteinVertices;
+model.lpsVertices = lpsVertices;
+model.BAMlocs = BAMlocs;
+model.LptDlocs = LptDlocs;
+
+% store indices of insertion points which are actually relevant
 proteinVerticesBAMs = {}; % This stores the indices of the BAMs that can actually affect each polygon
+rightEdgeBAMs = [];
+leftEdgeBAMs = [];
+
 % has to be a cell as can have different lengths. Guess it could have zeros
 % but would need to think about this.
 
 halfLen = currentMaxLen/2;
-model.rightEdge = [halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
-model.leftEdge = [-halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
+rightEdge = [halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
+leftEdge = [-halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
+
+model.rightEdge = rightEdge;
+model.leftEdge = leftEdge;
 
 % save the settings used to construct the model in model as well
 
@@ -185,25 +198,25 @@ prematureEnd = 0;
 testFlag = 0;
 
 fig = figure;
-visualiseSimple(model);
+visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
 title(['time is ',num2str(time)])
 saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
 close(fig)
-
-insRateProtein
-insRateLPS
-proteinAddedNewInsertion
-LPSAddedNewInsertion
+% 
+% insRateProtein
+% insRateLPS
+% proteinAddedNewInsertion
+% LPSAddedNewInsertion
 
 while time < maxTime && prematureEnd == 0
     
     count = count + 1;
     
-    if testFlag == 1
-        disp(['COUNT IS: ',count])
-        model.proteinVertices
-    end
-
+    % calculate the mean left and right edge position
+    
+    meanLeftEdge = mean(leftEdge(1,:));
+    meanRightEdge = mean(rightEdge(1,:));
+    
     % we need to maintain a list of newly inserted insertion points, or at
     % least their indices
     % there can only be at most one new bam location, and this is already
@@ -236,23 +249,28 @@ while time < maxTime && prematureEnd == 0
         
         allowedInsertion = 1;
         
-        for i=1:size(model.BAMlocs,1)
-            if findDist(model.BAMlocs(i,:),[newBAMloc(1),newBAMloc(2)]) < model.settings.BAMsize
+        for i=1:size(BAMlocs,1)
+            if findDist(BAMlocs(i,:),[newBAMloc(1),newBAMloc(2)]) < model.settings.BAMsize
                 allowedInsertion = 0;
             end
         end
         
         if allowedInsertion == 1
-            newBAMIndex = size(model.BAMlocs,1) + 1;
+            newBAMIndex = size(BAMlocs,1) + 1;
 
-            model.BAMlocs(newBAMIndex,:) = newBAMloc;
+            BAMlocs(newBAMIndex,:) = newBAMloc;
 
             newBAMlocs = newBAMloc;
             
             % add the new insertion point to all of the index lists for
             % each polygon
             for poly = 1:numel(proteinVerticesBAMs)
-                proteinVerticesBAMs{poly}(numel(proteinVerticesBAMs{poly}+1)) = newBAMIndex;
+                % but only if the insertion point is close to at least one
+                % vertex
+                pos = proteinVertices{poly}(1,:);
+                if sum((pos-newBAMloc).^2) < 22500
+                    proteinVerticesBAMs{poly}(numel(proteinVerticesBAMs{poly}+1)) = newBAMIndex;
+                end
             end
             
         end
@@ -263,7 +281,7 @@ while time < maxTime && prematureEnd == 0
     
     newLptDIndex = 1;
     
-    for BAM = 1:size(model.BAMlocs,1)
+    for BAM = 1:size(BAMlocs,1)
         % for each BAM we roll a die and if it is less than some number we
         % add an LptD near that BAM
         
@@ -275,7 +293,7 @@ while time < maxTime && prematureEnd == 0
             theta = rand(1)*2*pi;
             
             % add twice BAMsize for space for LptD as well
-            newLptDlocs(newLptDIndex,:) = [model.BAMlocs(BAM,1)+BAMsize*cos(theta),model.BAMlocs(BAM,2)+BAMsize*sin(theta)];
+            newLptDlocs(newLptDIndex,:) = [BAMlocs(BAM,1)+BAMsize*cos(theta),BAMlocs(BAM,2)+BAMsize*sin(theta)];
             
             newLptDIndex = newLptDIndex + 1;
         end
@@ -285,66 +303,56 @@ while time < maxTime && prematureEnd == 0
     % add the new LptD to the LptD location list
     
     for lptD = 1:(newLptDIndex-1)
-        newLptDLocsIndex = size(model.LptDlocs,1) + 1;
+        newLptDLocsIndex = size(LptDlocs,1) + 1;
 
-        model.LptDlocs(newLptDLocsIndex,:) = newLptDlocs(lptD,:);        
+        LptDlocs(newLptDLocsIndex,:) = newLptDlocs(lptD,:);        
     end
     
 
     % move protein polygon vertices
     % have to loop through all polygons, then all pairs of vertices
-    for poly = 1:numel(model.proteinVertices)
-        for j=1:size(model.proteinVertices{poly},1)
+    for poly = 1:numel(proteinVertices)
+        for j=1:size(proteinVertices{poly},1)
 
-            flow = calcFlow(model.proteinVertices{poly}(j,:),model.BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(proteinVertices{poly}(j,:),BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
             
-            newPos = findNewVertexPosition(model.proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
+            %newPos = findNewVertexPosition(proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
             
-            model.proteinVertices{poly}(j,:) = newPos;
+            proteinVertices{poly}(j,:) = proteinVertices{poly}(j,:) + flow*dt;
         end
     end
-    
-    if testFlag == 1
-        disp('AFTER MOVING POLYGONS IS: ')
-        model.proteinVertices
-    end
-    
+
     % move lps polygon vertices
     % have to loop through all polygons, then all pairs of vertices
 
-    for poly = 1:numel(model.lpsVertices)
-        for j=1:size(model.lpsVertices{poly},1)
+    for poly = 1:numel(lpsVertices)
+        for j=1:size(lpsVertices{poly},1)
 
-            flow = calcFlow(model.lpsVertices{poly}(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(lpsVertices{poly}(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
             
-            %newPos = findNewVertexPosition(model.lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
+            %newPos = findNewVertexPosition(lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
             
-            newPos = model.lpsVertices{poly}(j,:) + flow*dt;
+            newPos = lpsVertices{poly}(j,:) + flow*dt;
             
-            model.lpsVertices{poly}(j,:) = newPos;
+            lpsVertices{poly}(j,:) = newPos;
         end
     end
-    
-    if testFlag == 1
-        disp('AFTER MOVING LPS IS: ')
-        model.proteinVertices
-    end
-    
+
     % move the edge vertices
     for j=1:100
-        flow = calcFlow(model.rightEdge(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(rightEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
 
-        newPos = findNewVertexPosition(model.rightEdge(j,:),flow,dt,membraneCircumference);
+        newPos = findNewVertexPosition(rightEdge(j,:),flow,dt,membraneCircumference);
 
-        model.rightEdge(j,:) = newPos;
+        rightEdge(j,:) = newPos;
     end
     
     for j=1:100
-        flow = calcFlow(model.leftEdge(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(leftEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
 
-        newPos = findNewVertexPosition(model.leftEdge(j,:),flow,dt,membraneCircumference);
+        newPos = findNewVertexPosition(leftEdge(j,:),flow,dt,membraneCircumference);
 
-        model.leftEdge(j,:) = newPos;
+        leftEdge(j,:) = newPos;
     end
     
     
@@ -352,57 +360,47 @@ while time < maxTime && prematureEnd == 0
     
     % have to record new positions separately and move everything
     % simultaneously
-    movedLptDlocs = zeros(size(model.LptDlocs));
+    movedLptDlocs = zeros(size(LptDlocs));
     
-    for j = 1:size(model.LptDlocs,1)
+    for j = 1:size(LptDlocs,1)
         % find the flow from all points EXCEPT itself
-        tempLptDlocs = model.LptDlocs;
+        tempLptDlocs = LptDlocs;
         tempLptDlocs(j,:) = [];
         
-        flow = calcFlow(model.LptDlocs(j,:),model.BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(LptDlocs(j,:),BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,0);
             
-        newPos = findNewVertexPosition(model.LptDlocs(j,:),flow,dt,membraneCircumference);
+        newPos = findNewVertexPosition(LptDlocs(j,:),flow,dt,membraneCircumference);
             
-        %model.LptDlocs(j,:) = newPos;
+        %LptDlocs(j,:) = newPos;
         movedLptDlocs(j,:) = newPos;
         
     end
-    
-    if testFlag == 1
-        disp('AFTER MOVING LPTD IS: ')
-        model.proteinVertices
-    end
-    
+
     % move insertion points (protein)
     
     % we need to record the new positions separately and then move
     % everything simultaneously
-    movedBAMlocs = zeros(size(model.BAMlocs));
+    movedBAMlocs = zeros(size(BAMlocs));
         
-    for j = 1:size(model.BAMlocs,1)
+    for j = 1:size(BAMlocs,1)
         % find the flow from all points EXCEPT itself
-        tempBAMlocs = model.BAMlocs;
+        tempBAMlocs = BAMlocs;
         tempBAMlocs(j,:) = [];
 
-        flow = calcFlow(model.BAMlocs(j,:),tempBAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
         
         
-        newPos = findNewVertexPosition(model.BAMlocs(j,:),flow,dt,membraneCircumference);
+        newPos = findNewVertexPosition(BAMlocs(j,:),flow,dt,membraneCircumference);
             
-        %model.BAMlocs(j,:) = newPos;
+        %BAMlocs(j,:) = newPos;
         movedBAMlocs(j,:) = newPos;
         
     end
-    
-    if testFlag == 1
-        disp('AFTER MOVING BAMS IS: ')
-        model.proteinVertices
-    end
-    
+
     % now that we have the new locations for both BAM and LptD, record them
     
-    model.LptDlocs = movedLptDlocs;
-    model.BAMlocs = movedBAMlocs;
+    LptDlocs = movedLptDlocs;
+    BAMlocs = movedBAMlocs;
 
     % add new material from insertions
     
@@ -411,16 +409,16 @@ while time < maxTime && prematureEnd == 0
     if ~isempty(newBAMlocs)
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newBAMlocs,1)
-            newIndex = numel(model.proteinVertices)+1;
-            vertices = findVerticesNewMaterialCircle(model.BAMlocs(end-j+1,:),polygonSides,0,proteinAddedNewInsertion);
-            model.proteinVertices{newIndex}(:,:) = vertices;
+            newIndex = numel(proteinVertices)+1;
+            vertices = findVerticesNewMaterialCircle(BAMlocs(end-j+1,:),polygonSides,0,proteinAddedNewInsertion);
+            proteinVertices{newIndex}(:,:) = vertices;
             
             % note down the insertion points that can actually affect this
             % polygon
             insertionPoints = [];
             index = 1;
-            for k=1:size(model.BAMlocs,1)
-                dists = sum((vertices - model.BAMlocs(k,:)).^2,2);
+            for k=1:size(BAMlocs,1)
+                dists = sum((vertices - BAMlocs(k,:)).^2,2);
                 
                 % 22500 = 150^2
                 closeDists = sum(dists < 22500);
@@ -436,23 +434,18 @@ while time < maxTime && prematureEnd == 0
         end
     end
     
-    if testFlag == 1
-        disp('AFTER ADDING NEW BAMS IS: ')
-        model.proteinVertices
-    end
-    
     % add new material (LPS)
     % check to see whether new LptDs were added or not
     if ~isempty(newLptDlocs)
         % loop through them (in case somehow we have more than one added)
         for j=1:size(newLptDlocs,1)
-            newIndex = numel(model.lpsVertices)+1;
+            newIndex = numel(lpsVertices)+1;
             
             % we want to use the moved position of the new lptd, not the
-            % original position, so use the model.LptDlocs(end-j+1)
-            vertices = findVerticesNewMaterialCircle(model.LptDlocs(end-j+1,:),polygonSides,0,LPSAddedNewInsertion);
+            % original position, so use the LptDlocs(end-j+1)
+            vertices = findVerticesNewMaterialCircle(LptDlocs(end-j+1,:),polygonSides,0,LPSAddedNewInsertion);
 
-            model.lpsVertices{newIndex}(:,:) = vertices;
+            lpsVertices{newIndex}(:,:) = vertices;
         end
     end
         
@@ -466,25 +459,25 @@ while time < maxTime && prematureEnd == 0
         
         % do protein first
         
-        for poly = 1:numel(model.proteinVertices)
+        for poly = 1:numel(proteinVertices)
             
             for i=1:5
-                newPoints = surfaceTensionPolygon(model.proteinVertices{poly}(:,:),dt,surfaceTensionStrength);
+                newPoints = surfaceTensionPolygon(proteinVertices{poly}(:,:),dt,surfaceTensionStrength);
             end
             
-            model.proteinVertices{poly}(:,:) = newPoints;
+            proteinVertices{poly}(:,:) = newPoints;
         end
         
         % then LPS, but only if lps vertices exist
         
-        if numel(model.LptDlocs) > 0
-            for poly = 1:numel(model.lpsVertices)
+        if numel(LptDlocs) > 0
+            for poly = 1:numel(lpsVertices)
                 
                 for i=1:5
-                    newPoints = surfaceTensionPolygon(model.lpsVertices{poly}(:,:),dt,surfaceTensionStrength);
+                    newPoints = surfaceTensionPolygon(lpsVertices{poly}(:,:),dt,surfaceTensionStrength);
                 end
                 
-                model.lpsVertices{poly}(:,:) = newPoints;
+                lpsVertices{poly}(:,:) = newPoints;
             end
         end
         
@@ -537,14 +530,14 @@ while time < maxTime && prematureEnd == 0
     % insertions
     
     if mod(count,25) == 0
-        for poly = 1:numel(model.proteinVertices)
-            vertices = model.proteinVertices{poly};
+        for poly = 1:numel(proteinVertices)
+            vertices = proteinVertices{poly};
             % note down the insertion points that can actually affect this
             % polygon
             insertionPoints = [];
             index = 1;
-            for k=1:size(model.BAMlocs,1)
-                dists = sum((vertices - model.BAMlocs(k,:)).^2,2);
+            for k=1:size(BAMlocs,1)
+                dists = sum((vertices - BAMlocs(k,:)).^2,2);
 
                 % 22500 = 150^2
                 closeDists = sum(dists < 22500);
@@ -562,7 +555,7 @@ while time < maxTime && prematureEnd == 0
     % take a picture
     if mod(count,plotEvery) == 0
         fig = figure;
-        visualiseSimple(model);
+        visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
         title(['time is ',num2str(time)])
         saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
         close(fig)
@@ -603,19 +596,28 @@ while time < maxTime && prematureEnd == 0
 
 end
 
+% save final positions of everything
+model.proteinVertices = proteinVertices;
+model.lpsVertices = lpsVertices;
+model.BAMlocs = BAMlocs;
+model.LptDlocs = LptDlocs;
+
+model.rightEdge = rightEdge;
+model.leftEdge = leftEdge;
+
 if plotYes == 1
     %visualiseSimple(model)
 
     fig = figure;
-    visualiseSimple(model)
+    visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge)
     
     % display a circle with same area as the protein region in black
     
-    areaProtein = polyarea(model.proteinVertices{1}(:,1),model.proteinVertices{1}(:,2));
+    areaProtein = polyarea(proteinVertices{1}(:,1),proteinVertices{1}(:,2));
     radius = sqrt(areaProtein/pi);
     theta = linspace(0,2*pi,1000);
-    x = model.BAMlocs(1,1) + radius*cos(theta);
-    y = model.BAMlocs(1,2) + radius*sin(theta);
+    x = BAMlocs(1,1) + radius*cos(theta);
+    y = BAMlocs(1,2) + radius*sin(theta);
     
     plot(x,y,'k--')
 
@@ -627,3 +629,5 @@ if plotYes == 1
 end
 
 save([saveLocation,'results.mat'],'model')
+
+end
