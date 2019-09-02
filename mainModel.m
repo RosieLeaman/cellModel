@@ -180,6 +180,12 @@ prematureEnd = 0;
 
 testFlag = 0;
 
+fig = figure;
+visualiseSimple(model);
+title(['time is ',num2str(time)])
+saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
+close(fig)
+
 insRateProtein
 insRateLPS
 proteinAddedNewInsertion
@@ -300,7 +306,9 @@ while time < maxTime && prematureEnd == 0
 
             flow = calcFlow(model.lpsVertices{poly}(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
             
-            newPos = findNewVertexPosition(model.lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
+            %newPos = findNewVertexPosition(model.lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
+            
+            newPos = model.lpsVertices{poly}(j,:) + flow*dt;
             
             model.lpsVertices{poly}(j,:) = newPos;
         end
@@ -459,37 +467,40 @@ while time < maxTime && prematureEnd == 0
     
     plotSplit = 0;
     if splitFlag == 1
+        
+        if mod(count,10) == 0
     
-        [problems,newModel] = checkPolygonDistances2(model,1,0);
+            [problems,newModel] = checkPolygonDistances2(model,1,0);
 
-        if problems == 1
-            %disp('we have located a problem')
-            % we have regions that are too close
-            % snap a picture
-            if plotSplit == 1
-                fig = figure;
-                visualiseSimple(model)
+            if problems == 1
+                %disp('we have located a problem')
+                % we have regions that are too close
+                % snap a picture
+                if plotSplit == 1
+                    fig = figure;
+                    visualiseSimple(model)
 
-                title(['some regions are too close',num2str(time)])
-                saveas(fig,[saveLocation,'tooClose-it',num2str(count),'.png']);
-                close(fig)
+                    title(['some regions are too close',num2str(time)])
+                    saveas(fig,[saveLocation,'tooClose-it',num2str(count),'.png']);
+                    close(fig)
+                end
+
+                % resolve the issues
+
+                model = newModel;
+
+                % take a new picture of the resolution
+
+                if plotSplit == 1
+                    fig = figure;
+                    visualiseSimple(model)
+
+                    title(['resolution',num2str(time)])
+                    saveas(fig,[saveLocation,'resolution-it',num2str(count),'.png']);
+                    close(fig)
+                end
+
             end
-        
-            % resolve the issues
-
-            model = newModel;
-        
-            % take a new picture of the resolution
-
-            if plotSplit == 1
-                fig = figure;
-                visualiseSimple(model)
-
-                title(['resolution',num2str(time)])
-                saveas(fig,[saveLocation,'resolution-it',num2str(count),'.png']);
-                close(fig)
-            end
-
         end
     end
     
