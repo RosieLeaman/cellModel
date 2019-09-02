@@ -1,29 +1,29 @@
-function visualiseSimple(model)
+function visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge)
 
 hold on;
 
 % plotting of BAMlocs and regions needs to be separated. Same for LPS.
 
-if numel(model.BAMlocs) > 0
-    plot(model.BAMlocs(:,1),model.BAMlocs(:,2),'bd','linewidth',2)
+if numel(BAMlocs) > 0
+    plot(BAMlocs(:,1),BAMlocs(:,2),'bd','linewidth',2)
 end
 
-if numel(model.proteinVertices) > 0
-    for poly = 1:numel(model.proteinVertices)
-        plot(model.proteinVertices{poly}(:,1),model.proteinVertices{poly}(:,2),'bx')
+if numel(proteinVertices) > 0
+    for poly = 1:numel(proteinVertices)
+        plot(proteinVertices{poly}(:,1),proteinVertices{poly}(:,2),'bx')
     end
 end
 
-if numel(model.LptDlocs) > 0
-    plot(model.LptDlocs(:,1),model.LptDlocs(:,2),'rd','linewidth',2)
+if numel(LptDlocs) > 0
+    plot(LptDlocs(:,1),LptDlocs(:,2),'rd','linewidth',2)
 end
 
-if numel(model.lpsVertices) > 0
-    for poly = 1:numel(model.lpsVertices)
-        plot(model.lpsVertices{poly}(:,1),model.lpsVertices{poly}(:,2),'rx')
+if numel(lpsVertices) > 0
+    for poly = 1:numel(lpsVertices)
+        plot(lpsVertices{poly}(:,1),lpsVertices{poly}(:,2),'rx')
     end
 end
 
 % plot the left and right edges of bacteria
-plot(model.rightEdge(:,1),model.rightEdge(:,2),'kx-')
-plot(model.leftEdge(:,1),model.leftEdge(:,2),'kx-')
+plot(rightEdge(:,1),rightEdge(:,2),'kx-')
+plot(leftEdge(:,1),leftEdge(:,2),'kx-')
