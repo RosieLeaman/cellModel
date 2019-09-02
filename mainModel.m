@@ -176,6 +176,9 @@ model.LptDlocs = LptDlocs;
 
 % store indices of insertion points which are actually relevant
 proteinVerticesBAMs = {}; % This stores the indices of the BAMs that can actually affect each polygon
+proteinVerticesLptDs = {};
+lpsVerticesBAMs = {};
+lpsVerticesLptDs = {};
 %rightEdgeBAMs = [];
 %leftEdgeBAMs = [];
 
@@ -214,8 +217,9 @@ while time < maxTime && prematureEnd == 0
     
     % calculate the mean left and right edge position
     
-    meanLeftEdge = mean(leftEdge(1,:));
-    meanRightEdge = mean(rightEdge(1,:));
+    meanLeftEdge = mean(leftEdge(:,1));
+    meanRightEdge = mean(rightEdge(:,1));
+    cellLength = meanRightEdge - meanLeftEdge;
     
     % we need to maintain a list of newly inserted insertion points, or at
     % least their indices
@@ -225,58 +229,8 @@ while time < maxTime && prematureEnd == 0
     newBAMlocs = [];
     newLptDlocs = [];
     
-    % see if we need to insert a new BAM
+    % add new LptD first so that new BAMs cannot insert new LptD
     
-    newBamRandom = rand(1);
-    
-    % work out current area
-    
-    currentArea = initialArea*exp(sqrtGrowthRate*time);
-    
-    if newBamRandom < insRateBAM*dt*currentArea
-        % if yes add a BAM to a new randomly chosen location
-        
-        newBAMloc = rand(1,2); % gives two uniform random numbers
-        
-        % adjust the x one to be uniform between -currentMaxLen and
-        % currentMaxLen
-        % and y one to be uniform between 0 and membraneCircumference
-        newBAMloc(1) = newBAMloc(1)*2*halfLen-halfLen;
-        newBAMloc(2) = newBAMloc(2)*membraneCircumference;
-        
-        % we do not allow the insertion if it is within distance 1 of an
-        % already existing BAM
-        
-        allowedInsertion = 1;
-        
-        for i=1:size(BAMlocs,1)
-            if findDist(BAMlocs(i,:),[newBAMloc(1),newBAMloc(2)]) < model.settings.BAMsize
-                allowedInsertion = 0;
-            end
-        end
-        
-        if allowedInsertion == 1
-            newBAMIndex = size(BAMlocs,1) + 1;
-
-            BAMlocs(newBAMIndex,:) = newBAMloc;
-
-            newBAMlocs = newBAMloc;
-            
-            % add the new insertion point to all of the index lists for
-            % each polygon
-            for poly = 1:numel(proteinVerticesBAMs)
-                % but only if the insertion point is close to at least one
-                % vertex
-                pos = proteinVertices{poly}(1,:);
-                if sum((pos-newBAMloc).^2) < 22500
-                    proteinVerticesBAMs{poly}(numel(proteinVerticesBAMs{poly}+1)) = newBAMIndex;
-                end
-            end
-            
-        end
-        
-    end
-       
     % see if we need to add new lptD 
     
     newLptDIndex = 1;
@@ -305,22 +259,97 @@ while time < maxTime && prematureEnd == 0
     for lptD = 1:(newLptDIndex-1)
         newLptDLocsIndex = size(LptDlocs,1) + 1;
 
-        LptDlocs(newLptDLocsIndex,:) = newLptDlocs(lptD,:);        
+        LptDlocs(newLptDLocsIndex,:) = newLptDlocs(lptD,:);
+        
+        % check if this lptd should be considered for each protein polygon
+        % add the new insertion point to all of the index lists for
+        % each polygon
+        for poly = 1:numel(proteinVerticesLptDs)
+            % but only if the insertion point is close to at least one
+            % vertex
+            pos = proteinVertices{poly}(1,:);
+            if sum((pos-newLptDlocs(lptD,:)).^2) < 22500
+                proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
+            end
+        end
+        for poly = 1:numel(lpsVerticesLptDs)
+            % but only if the insertion point is close to at least one
+            % vertex
+            pos = lpsVertices{poly}(1,:);
+            if sum((pos-newLptDlocs(lptD,:)).^2) < 22500
+                lpsVerticesLptDs{poly}(numel(lpsVerticesLptDs{poly})+1) = newLptDLocsIndex;
+            end
+        end
     end
     
+    % see if we need to insert a new BAM
+    
+    newBamRandom = rand(1);
+    
+    % work out current area
+    
+    currentArea = initialArea*exp(sqrtGrowthRate*time);
+    
+    if newBamRandom < insRateBAM*dt*currentArea
+        % if yes add a BAM to a new randomly chosen location
+        
+        newBAMloc = rand(1,2); % gives two uniform random numbers
+        
+        % adjust the x one to be uniform between -currentMaxLen and
+        % currentMaxLen
+        % and y one to be uniform between 0 and membraneCircumference
+        newBAMloc(1) = newBAMloc(1)*cellLength-meanRightEdge;
+        newBAMloc(2) = newBAMloc(2)*membraneCircumference;
+        
+        % we do not allow the insertion if it is within distance 1 of an
+        % already existing BAM
+        
+        allowedInsertion = 1;
+        
+        for i=1:size(BAMlocs,1)
+            if findDist(BAMlocs(i,:),[newBAMloc(1),newBAMloc(2)]) < model.settings.BAMsize
+                allowedInsertion = 0;
+            end
+        end
+        
+        if allowedInsertion == 1
+            newBAMIndex = size(BAMlocs,1) + 1;
 
+            BAMlocs(newBAMIndex,:) = newBAMloc;
+
+            newBAMlocs = newBAMloc;
+            
+            % add the new insertion point to all of the index lists for
+            % each polygon
+            for poly = 1:numel(proteinVerticesBAMs)
+                % but only if the insertion point is close to at least one
+                % vertex
+                pos = proteinVertices{poly}(1,:);
+                if sum((pos-newBAMloc).^2) < 22500
+                    proteinVerticesBAMs{poly}(numel(proteinVerticesBAMs{poly})+1) = newBAMIndex;
+                end
+            end
+            for poly = 1:numel(lpsVerticesBAMs)
+                % but only if the insertion point is close to at least one
+                % vertex
+                pos = lpsVertices{poly}(1,:);
+                if sum((pos-newBAMloc).^2) < 22500
+                    lpsVerticesBAMs{poly}(numel(lpsVerticesBAMs{poly})+1) = newBAMIndex;
+                end
+            end
+            
+        end
+        
+    end
+    
     % move protein polygon vertices
     % have to loop through all polygons, then all pairs of vertices
     for poly = 1:numel(proteinVertices)
-%         for j=1:size(proteinVertices{poly},1)
-% 
-%             flow = calcFlow(proteinVertices{poly}(j,:),BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
-%             
-%             %newPos = findNewVertexPosition(proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
-%             
-%             
-%         end
-        flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+        if numel(LptDlocs) > 0
+            flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs(proteinVerticesLptDs{poly},:),insRateLPS,membraneCircumference,smVecsY);
+        else
+            flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,[],insRateLPS,membraneCircumference,smVecsY);
+        end
         proteinVertices{poly} = proteinVertices{poly} + flow*dt;
     end
 
@@ -328,34 +357,13 @@ while time < maxTime && prematureEnd == 0
     % have to loop through all polygons, then all pairs of vertices
 
     for poly = 1:numel(lpsVertices)
-        for j=1:size(lpsVertices{poly},1)
-
-            flow = calcFlow(lpsVertices{poly}(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
-
-            lpsVertices{poly}(j,:) = lpsVertices{poly}(j,:) + flow*dt;
-        end
+        flow = calcFlow(lpsVertices{poly},BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+        lpsVertices{poly} = lpsVertices{poly} + flow*dt;
     end
-
-    % move the edge vertices
-%     for j=1:100
-%         flow = calcFlow(rightEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
-% 
-%         newPos = findNewVertexPosition(rightEdge(j,:),flow,dt,membraneCircumference);
-% 
-%         rightEdge(j,:) = newPos;
-%     end
-
+    
     flows = calcFlow(rightEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
     rightEdge = rightEdge + flows*dt;
     
-%     for j=1:100
-%         flow = calcFlow(leftEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
-% 
-%         newPos = findNewVertexPosition(leftEdge(j,:),flow,dt,membraneCircumference);
-% 
-%         leftEdge(j,:) = newPos;
-%     end
-
     flows = calcFlow(leftEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
     leftEdge = leftEdge + flows*dt;
     
@@ -371,11 +379,8 @@ while time < maxTime && prematureEnd == 0
         tempLptDlocs(j,:) = [];
         
         flow = calcFlow(LptDlocs(j,:),BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,smVecsY);
-            
-        newPos = findNewVertexPosition(LptDlocs(j,:),flow,dt,membraneCircumference);
-            
-        %LptDlocs(j,:) = newPos;
-        movedLptDlocs(j,:) = newPos;
+
+        movedLptDlocs(j,:) = LptDlocs(j,:) + flow*dt;
         
     end
 
@@ -431,6 +436,21 @@ while time < maxTime && prematureEnd == 0
             
             proteinVerticesBAMs{newIndex} = insertionPoints;
             
+            % do same for LPS
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(LptDlocs,1)
+                dists = sum((vertices - LptDlocs(k,:)).^2,2);
+                
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+            proteinVerticesLptDs{newIndex} = insertionPoints;
         end
     end
     
@@ -446,8 +466,43 @@ while time < maxTime && prematureEnd == 0
             vertices = findVerticesNewMaterialCircle(LptDlocs(end-j+1,:),polygonSides,0,LPSAddedNewInsertion);
 
             lpsVertices{newIndex}(:,:) = vertices;
+            
+            % note down the insertion points that can actually affect this
+            % polygon
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(BAMlocs,1)
+                dists = sum((vertices - BAMlocs(k,:)).^2,2);
+                
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+            
+            lpsVerticesBAMs{newIndex} = insertionPoints;
+            
+            % do same for LPS
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(LptDlocs,1)
+                dists = sum((vertices - LptDlocs(k,:)).^2,2);
+                
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+            lpsVerticesLptDs{newIndex} = insertionPoints;
         end
     end
+    
         
     
     % move points under surface tension if required
@@ -531,6 +586,7 @@ while time < maxTime && prematureEnd == 0
     
     if mod(count,25) == 0
         for poly = 1:numel(proteinVertices)
+            % PROTEIN VS BAM
             vertices = proteinVertices{poly};
             % note down the insertion points that can actually affect this
             % polygon
@@ -549,6 +605,66 @@ while time < maxTime && prematureEnd == 0
             end
 
             proteinVerticesBAMs{poly} = insertionPoints;
+            
+            % PROTEIN VS LPTD
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(LptDlocs,1)
+                dists = sum((vertices - LptDlocs(k,:)).^2,2);
+
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+
+            proteinVerticesLptDs{poly} = insertionPoints;
+        end
+        % check lps too
+        for poly = 1:numel(lpsVertices)
+            % LPS VS BAM
+            vertices = lpsVertices{poly};
+            % note down the insertion points that can actually affect this
+            % polygon
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(BAMlocs,1)
+                dists = sum((vertices - BAMlocs(k,:)).^2,2);
+
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+
+            proteinVerticesBAMs{poly} = insertionPoints;
+            
+            % LPS VS LPTD
+            vertices = lpsVertices{poly};
+            % note down the insertion points that can actually affect this
+            % polygon
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(LptDlocs,1)
+                dists = sum((vertices - LptDlocs(k,:)).^2,2);
+
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+
+            proteinVerticesLptDs{poly} = insertionPoints;
+           
         end
     end
     
@@ -558,7 +674,7 @@ while time < maxTime && prematureEnd == 0
         visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
         title(['time is ',num2str(time)])
         saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
-        close(fig)
+        %close(fig)
     end
     
     
