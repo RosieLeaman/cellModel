@@ -123,6 +123,8 @@ end
 polygonSides = settings.polygonSides;
 
 membraneCircumference = settings.membraneCircumference; % um
+smVecsY = ((-10:10)')*membraneCircumference; % used in calcFlow.m
+
 currentMaxLen = settings.currentMaxLen; %um
 initialArea = settings.membraneCircumference*settings.currentMaxLen*2; % um^2
 settings.initialArea = initialArea;
@@ -314,7 +316,7 @@ while time < maxTime && prematureEnd == 0
     for poly = 1:numel(proteinVertices)
         for j=1:size(proteinVertices{poly},1)
 
-            flow = calcFlow(proteinVertices{poly}(j,:),BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(proteinVertices{poly}(j,:),BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
             
             %newPos = findNewVertexPosition(proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
             
@@ -328,7 +330,7 @@ while time < maxTime && prematureEnd == 0
     for poly = 1:numel(lpsVertices)
         for j=1:size(lpsVertices{poly},1)
 
-            flow = calcFlow(lpsVertices{poly}(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(lpsVertices{poly}(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
             
             %newPos = findNewVertexPosition(lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
             
@@ -340,7 +342,7 @@ while time < maxTime && prematureEnd == 0
 
     % move the edge vertices
     for j=1:100
-        flow = calcFlow(rightEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(rightEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
 
         newPos = findNewVertexPosition(rightEdge(j,:),flow,dt,membraneCircumference);
 
@@ -348,7 +350,7 @@ while time < maxTime && prematureEnd == 0
     end
     
     for j=1:100
-        flow = calcFlow(leftEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(leftEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
 
         newPos = findNewVertexPosition(leftEdge(j,:),flow,dt,membraneCircumference);
 
@@ -367,7 +369,7 @@ while time < maxTime && prematureEnd == 0
         tempLptDlocs = LptDlocs;
         tempLptDlocs(j,:) = [];
         
-        flow = calcFlow(LptDlocs(j,:),BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(LptDlocs(j,:),BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,smVecsY);
             
         newPos = findNewVertexPosition(LptDlocs(j,:),flow,dt,membraneCircumference);
             
@@ -387,7 +389,7 @@ while time < maxTime && prematureEnd == 0
         tempBAMlocs = BAMlocs;
         tempBAMlocs(j,:) = [];
 
-        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,0);
+        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
         
         
         newPos = findNewVertexPosition(BAMlocs(j,:),flow,dt,membraneCircumference);

@@ -19,9 +19,7 @@
 % flow; 1x2 row vector which is the flow felt at pos caused by the
 % insertions
 
-function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference,flag)
-
-smVecsY = ((-10:10)')*membraneCircumference;
+function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference,smVecsY)
 
 proteinFlow = [0,0];
 
