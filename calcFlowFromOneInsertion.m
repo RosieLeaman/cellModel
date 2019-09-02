@@ -15,18 +15,14 @@
 
 function flow = calcFlowFromOneInsertion(pos,insertion,insRate,membraneCircumference) 
 
-flow = [0,0];
+%flow = [0,0];
 
-for m = -10:10
-    
-    sm = [0,m*membraneCircumference];
-    
-    vectorToInsertion = pos - (insertion + sm);
-    
-    distToInsertion = vectorToInsertion(1)^2+vectorToInsertion(2)^2;
-    
-    flow = flow + vectorToInsertion./distToInsertion;
-    
-end
+smVecs = [zeros(21,1),(-10:10)']*membraneCircumference;
+posVecs = repmat(pos,21,1); % repeat the vector here
+insertionVecs = repmat(insertion,21,1);
 
-flow = flow*insRate/(2*pi);
+vectorsToInsertions = posVecs - insertionVecs + smVecs;
+
+distToInsertions = sum((vectorsToInsertions.^2),2);
+
+flow = sum((vectorsToInsertions./distToInsertions),1)*insRate/(2*pi);
