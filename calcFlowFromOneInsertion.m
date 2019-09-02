@@ -13,16 +13,28 @@
 % flow; 1x2 row vector, flow felt in the x and y directions at the point
 % pos
 
-function flow = calcFlowFromOneInsertion(pos,insertion,insRate,membraneCircumference) 
+function flow = calcFlowFromOneInsertion(pos,insertion,membraneCircumference) 
 
-%flow = [0,0];
+% %flow = [0,0];
+% 
+% smVecs = [zeros(21,1),(-10:10)']*membraneCircumference;
+% % posVecs = repmat(pos,21,1); % repeat the vector here
+% % insertionVecs = repmat(insertion,21,1);
+% 
+% posToInsertionVec = pos - insertion;
+% 
+% vectorsToInsertions = posToInsertionVec + smVecs;
+% 
+% distToInsertions = sum((vectorsToInsertions.^2),2);
+% 
+% flow = sum((vectorsToInsertions./distToInsertions),1);
 
-smVecs = [zeros(21,1),(-10:10)']*membraneCircumference;
-posVecs = repmat(pos,21,1); % repeat the vector here
-insertionVecs = repmat(insertion,21,1);
+smVecsY = ((-10:10)')*membraneCircumference;
 
-vectorsToInsertions = posVecs - insertionVecs + smVecs;
+posToInsertionVec = pos-insertion;
 
-distToInsertions = sum((vectorsToInsertions.^2),2);
+posToInsertionVecsY = posToInsertionVec(2) + smVecsY;
 
-flow = sum((vectorsToInsertions./distToInsertions),1)*insRate/(2*pi);
+distToInsertions = posToInsertionVec(1).^2+posToInsertionVecsY.^2;
+
+flow = [sum(posToInsertionVec(1)./distToInsertions),sum(posToInsertionVecsY./distToInsertions)];
