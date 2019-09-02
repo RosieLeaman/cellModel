@@ -26,17 +26,17 @@ flow = [0,0];
 % calculate flow due to proteins
 
 for i=1:size(insertionLocsProtein,1)
-    if sum((pos-insertionLocsProtein(i,:)).^2) < 22500
-        nextFlow = calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,membraneCircumference);
-        if flag == 1
-            disp(['flow due to bam ',num2str(i)])
-            nextFlow
-            pos
-            insertionLocsProtein
-            insRateProtein
-        end
-        flow = flow + nextFlow;
-    end
+    %if sum((pos-insertionLocsProtein(i,:)).^2) < 22500
+    nextFlow = calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),insRateProtein,membraneCircumference);
+%     if flag == 1
+%         disp(['flow due to bam ',num2str(i)])
+%         nextFlow
+%         pos
+%         insertionLocsProtein
+%         insRateProtein
+%     end
+    flow = flow + nextFlow;
+    %end
 end
 
 % calculate flow due to LPS

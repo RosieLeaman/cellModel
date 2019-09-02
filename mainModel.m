@@ -166,6 +166,10 @@ model.LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
 model.proteinVertices = initPositions.proteinVertices;
 model.lpsVertices = initPositions.lpsVertices;
 
+proteinVerticesBAMs = {}; % This stores the indices of the BAMs that can actually affect each polygon
+% has to be a cell as can have different lengths. Guess it could have zeros
+% but would need to think about this.
+
 halfLen = currentMaxLen/2;
 model.rightEdge = [halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
 model.leftEdge = [-halfLen*ones(100,1),linspace(0,membraneCircumference,100)'];
@@ -244,6 +248,13 @@ while time < maxTime && prematureEnd == 0
             model.BAMlocs(newBAMIndex,:) = newBAMloc;
 
             newBAMlocs = newBAMloc;
+            
+            % add the new insertion point to all of the index lists for
+            % each polygon
+            for poly = 1:numel(proteinVerticesBAMs)
+                proteinVerticesBAMs{poly}(numel(proteinVerticesBAMs{poly}+1)) = newBAMIndex;
+            end
+            
         end
         
     end
@@ -285,7 +296,7 @@ while time < maxTime && prematureEnd == 0
     for poly = 1:numel(model.proteinVertices)
         for j=1:size(model.proteinVertices{poly},1)
 
-            flow = calcFlow(model.proteinVertices{poly}(j,:),model.BAMlocs,insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
+            flow = calcFlow(model.proteinVertices{poly}(j,:),model.BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,model.LptDlocs,insRateLPS,membraneCircumference,0);
             
             newPos = findNewVertexPosition(model.proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
             
@@ -403,7 +414,25 @@ while time < maxTime && prematureEnd == 0
             newIndex = numel(model.proteinVertices)+1;
             vertices = findVerticesNewMaterialCircle(model.BAMlocs(end-j+1,:),polygonSides,0,proteinAddedNewInsertion);
             model.proteinVertices{newIndex}(:,:) = vertices;
-
+            
+            % note down the insertion points that can actually affect this
+            % polygon
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(model.BAMlocs,1)
+                dists = sum((vertices - model.BAMlocs(k,:)).^2,2);
+                
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+            
+            proteinVerticesBAMs{newIndex} = insertionPoints;
+            
         end
     end
     
@@ -504,6 +533,32 @@ while time < maxTime && prematureEnd == 0
         end
     end
     
+    % every so many iterations re-check how close vertices are to
+    % insertions
+    
+    if mod(count,25) == 0
+        for poly = 1:numel(model.proteinVertices)
+            vertices = model.proteinVertices{poly};
+            % note down the insertion points that can actually affect this
+            % polygon
+            insertionPoints = [];
+            index = 1;
+            for k=1:size(model.BAMlocs,1)
+                dists = sum((vertices - model.BAMlocs(k,:)).^2,2);
+
+                % 22500 = 150^2
+                closeDists = sum(dists < 22500);
+                if closeDists > 0
+                    % store indices
+                    insertionPoints(index) = k;
+                    index = index + 1;
+                end
+            end
+
+            proteinVerticesBAMs{poly} = insertionPoints;
+        end
+    end
+    
     % take a picture
     if mod(count,plotEvery) == 0
         fig = figure;
@@ -570,6 +625,5 @@ if plotYes == 1
     close(fig)
 
 end
-
 
 save([saveLocation,'results.mat'],'model')
