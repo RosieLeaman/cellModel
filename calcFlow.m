@@ -19,42 +19,46 @@
 % flow; 1x2 row vector which is the flow felt at pos caused by the
 % insertions
 
-function flow = calcFlow(pos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference,smVecsY)
+function flows = calcFlow(allPos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,membraneCircumference,smVecsY)
 
-proteinFlow = [0,0];
+flows = zeros(size(allPos));
 
-% calculate flow due to proteins
+for vertex = 1:size(allPos,1)
+    pos = allPos(vertex,:);
 
-for i=1:size(insertionLocsProtein,1)
-    %if sum((pos-insertionLocsProtein(i,:)).^2) < 22500
-    %nextFlow = calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),membraneCircumference);
+    proteinFlow = [0,0];
 
-    posToInsertionVec = pos-insertionLocsProtein(i,:);
+    % calculate flow due to proteins
 
-    posToInsertionVecsY = posToInsertionVec(2) + smVecsY;
+    for i=1:size(insertionLocsProtein,1)
+        %if sum((pos-insertionLocsProtein(i,:)).^2) < 22500
+        %nextFlow = calcFlowFromOneInsertion(pos,insertionLocsProtein(i,:),membraneCircumference);
 
-    distToInsertions = posToInsertionVec(1).^2+posToInsertionVecsY.^2;
+        posToInsertionVec = pos-insertionLocsProtein(i,:);
 
-    flow = [sum(posToInsertionVec(1)./distToInsertions),sum(posToInsertionVecsY./distToInsertions)];
+        posToInsertionVecsY = posToInsertionVec(2) + smVecsY;
 
-    proteinFlow = proteinFlow + flow;
-    %end
-end
+        distToInsertions = posToInsertionVec(1).^2+posToInsertionVecsY.^2;
 
-proteinFlow = proteinFlow*insRateProtein/(2*pi);
+        flow = [sum(posToInsertionVec(1)./distToInsertions),sum(posToInsertionVecsY./distToInsertions)];
 
-% calculate flow due to LPS
+        proteinFlow = proteinFlow + flow;
+        %end
+    end
 
-LPSflow = [0,0];
+    proteinFlow = proteinFlow*insRateProtein/(2*pi);
 
-for i=1:size(insertionLocsLPS,1)
-    nextFlow = calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),membraneCircumference);
+    % calculate flow due to LPS
 
-    LPSflow = LPSflow + nextFlow;
-end
+    LPSflow = [0,0];
 
-LPSflow = LPSflow*insRateLPS/(2*pi);
+    for i=1:size(insertionLocsLPS,1)
+        nextFlow = calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),membraneCircumference);
 
-flow = proteinFlow + LPSflow;
+        LPSflow = LPSflow + nextFlow;
+    end
 
+    LPSflow = LPSflow*insRateLPS/(2*pi);
+
+    flows(vertex,:) = proteinFlow + LPSflow;
 end

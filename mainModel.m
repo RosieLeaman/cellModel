@@ -162,9 +162,9 @@ plotEvery = settings.plotEvery;
 % all information will be saved in the model struct
 
 BAMlocs = initPositions.BAMlocs;
-BAMlocsInit = initPositions.BAMlocs; % store initial BAMlocs
+%BAMlocsInit = initPositions.BAMlocs; % store initial BAMlocs
 LptDlocs = initPositions.LptDlocs;
-LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
+%LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
 proteinVertices = initPositions.proteinVertices;
 lpsVertices = initPositions.lpsVertices;
 
@@ -176,8 +176,8 @@ model.LptDlocs = LptDlocs;
 
 % store indices of insertion points which are actually relevant
 proteinVerticesBAMs = {}; % This stores the indices of the BAMs that can actually affect each polygon
-rightEdgeBAMs = [];
-leftEdgeBAMs = [];
+%rightEdgeBAMs = [];
+%leftEdgeBAMs = [];
 
 % has to be a cell as can have different lengths. Guess it could have zeros
 % but would need to think about this.
@@ -196,8 +196,6 @@ model.settings = settings;
 % while time is less than max time
 count = 0;
 prematureEnd = 0;
-
-testFlag = 0;
 
 fig = figure;
 visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
@@ -314,14 +312,16 @@ while time < maxTime && prematureEnd == 0
     % move protein polygon vertices
     % have to loop through all polygons, then all pairs of vertices
     for poly = 1:numel(proteinVertices)
-        for j=1:size(proteinVertices{poly},1)
-
-            flow = calcFlow(proteinVertices{poly}(j,:),BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
-            
-            %newPos = findNewVertexPosition(proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
-            
-            proteinVertices{poly}(j,:) = proteinVertices{poly}(j,:) + flow*dt;
-        end
+%         for j=1:size(proteinVertices{poly},1)
+% 
+%             flow = calcFlow(proteinVertices{poly}(j,:),BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+%             
+%             %newPos = findNewVertexPosition(proteinVertices{poly}(j,:),flow,dt,membraneCircumference);
+%             
+%             
+%         end
+        flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+        proteinVertices{poly} = proteinVertices{poly} + flow*dt;
     end
 
     % move lps polygon vertices
@@ -331,32 +331,33 @@ while time < maxTime && prematureEnd == 0
         for j=1:size(lpsVertices{poly},1)
 
             flow = calcFlow(lpsVertices{poly}(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
-            
-            %newPos = findNewVertexPosition(lpsVertices{poly}(j,:),flow,dt,membraneCircumference);
-            
-            newPos = lpsVertices{poly}(j,:) + flow*dt;
-            
-            lpsVertices{poly}(j,:) = newPos;
+
+            lpsVertices{poly}(j,:) = lpsVertices{poly}(j,:) + flow*dt;
         end
     end
 
     % move the edge vertices
-    for j=1:100
-        flow = calcFlow(rightEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+%     for j=1:100
+%         flow = calcFlow(rightEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+% 
+%         newPos = findNewVertexPosition(rightEdge(j,:),flow,dt,membraneCircumference);
+% 
+%         rightEdge(j,:) = newPos;
+%     end
 
-        newPos = findNewVertexPosition(rightEdge(j,:),flow,dt,membraneCircumference);
-
-        rightEdge(j,:) = newPos;
-    end
+    flows = calcFlow(rightEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+    rightEdge = rightEdge + flows*dt;
     
-    for j=1:100
-        flow = calcFlow(leftEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+%     for j=1:100
+%         flow = calcFlow(leftEdge(j,:),BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+% 
+%         newPos = findNewVertexPosition(leftEdge(j,:),flow,dt,membraneCircumference);
+% 
+%         leftEdge(j,:) = newPos;
+%     end
 
-        newPos = findNewVertexPosition(leftEdge(j,:),flow,dt,membraneCircumference);
-
-        leftEdge(j,:) = newPos;
-    end
-    
+    flows = calcFlow(leftEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+    leftEdge = leftEdge + flows*dt;
     
     % move insertion points (lps)
     
@@ -383,7 +384,9 @@ while time < maxTime && prematureEnd == 0
     % we need to record the new positions separately and then move
     % everything simultaneously
     movedBAMlocs = zeros(size(BAMlocs));
-        
+    
+    % this has to be done individually as different sets of BAMs are
+    % allowed for each (cant move due to flow from itself)
     for j = 1:size(BAMlocs,1)
         % find the flow from all points EXCEPT itself
         tempBAMlocs = BAMlocs;
@@ -391,12 +394,7 @@ while time < maxTime && prematureEnd == 0
 
         flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
         
-        
-        newPos = findNewVertexPosition(BAMlocs(j,:),flow,dt,membraneCircumference);
-            
-        %BAMlocs(j,:) = newPos;
-        movedBAMlocs(j,:) = newPos;
-        
+        movedBAMlocs(j,:) = BAMlocs(j,:) + flow*dt;        
     end
 
     % now that we have the new locations for both BAM and LptD, record them
