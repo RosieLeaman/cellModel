@@ -51,32 +51,12 @@ LPSflow = [0,0];
 
 for i=1:size(insertionLocsLPS,1)
     nextFlow = calcFlowFromOneInsertion(pos,insertionLocsLPS(i,:),membraneCircumference);
-%     if flag == 1
-%         disp(['flow due to lptd ',num2str(i)])
-%         nextFlow
-%         pos
-%         insertionLocsLPS
-%         insRateLPS
-%     end
+
     LPSflow = LPSflow + nextFlow;
 end
 
 LPSflow = LPSflow*insRateLPS/(2*pi);
 
 flow = proteinFlow + LPSflow;
-
-end
-
-function flow = calcFlowFromOneInsertion(pos,insertion,membraneCircumference) 
-
-smVecsY = ((-10:10)')*membraneCircumference;
-
-posToInsertionVec = pos-insertion;
-
-posToInsertionVecsY = posToInsertionVec(2) + smVecsY;
-
-distToInsertions = posToInsertionVec(1).^2+posToInsertionVecsY.^2;
-
-flow = [sum(posToInsertionVec(1)./distToInsertions),sum(posToInsertionVecsY./distToInsertions)];
 
 end
