@@ -211,6 +211,13 @@ close(fig)
 % proteinAddedNewInsertion
 % LPSAddedNewInsertion
 
+insertionAccuracy = 3;
+maxInsDistProtein = (insRateProtein*exp(insertionAccuracy))/(2*pi);
+maxInsDistLPS = (insRateProtein*exp(insertionAccuracy))/(2*pi);
+
+maxInsDistProtein2 = maxInsDistProtein^2;
+maxInsDistLPS2 = maxInsDistLPS^2;
+
 while time < maxTime && prematureEnd == 0
     
     count = count + 1;
@@ -268,7 +275,7 @@ while time < maxTime && prematureEnd == 0
             % but only if the insertion point is close to at least one
             % vertex
             pos = proteinVertices{poly}(1,:);
-            if sum((pos-newLptDlocs(lptD,:)).^2) < 22500
+            if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
                 proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
             end
         end
@@ -276,7 +283,7 @@ while time < maxTime && prematureEnd == 0
             % but only if the insertion point is close to at least one
             % vertex
             pos = lpsVertices{poly}(1,:);
-            if sum((pos-newLptDlocs(lptD,:)).^2) < 22500
+            if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
                 lpsVerticesLptDs{poly}(numel(lpsVerticesLptDs{poly})+1) = newLptDLocsIndex;
             end
         end
@@ -325,7 +332,7 @@ while time < maxTime && prematureEnd == 0
                 % but only if the insertion point is close to at least one
                 % vertex
                 pos = proteinVertices{poly}(1,:);
-                if sum((pos-newBAMloc).^2) < 22500
+                if sum((pos-newBAMloc).^2) < maxInsDistProtein2
                     proteinVerticesBAMs{poly}(numel(proteinVerticesBAMs{poly})+1) = newBAMIndex;
                 end
             end
@@ -333,7 +340,7 @@ while time < maxTime && prematureEnd == 0
                 % but only if the insertion point is close to at least one
                 % vertex
                 pos = lpsVertices{poly}(1,:);
-                if sum((pos-newBAMloc).^2) < 22500
+                if sum((pos-newBAMloc).^2) < maxInsDistProtein2
                     lpsVerticesBAMs{poly}(numel(lpsVerticesBAMs{poly})+1) = newBAMIndex;
                 end
             end
@@ -357,7 +364,7 @@ while time < maxTime && prematureEnd == 0
     % have to loop through all polygons, then all pairs of vertices
 
     for poly = 1:numel(lpsVertices)
-        flow = calcFlow(lpsVertices{poly},BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+        flow = calcFlow(lpsVertices{poly},BAMlocs(lpsVerticesBAMs{poly},:),insRateProtein,LptDlocs(lpsVerticesLptDs{poly},:),insRateLPS,membraneCircumference,smVecsY);
         lpsVertices{poly} = lpsVertices{poly} + flow*dt;
     end
     
@@ -426,7 +433,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - BAMlocs(k,:)).^2,2);
                 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistProtein2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -443,7 +450,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - LptDlocs(k,:)).^2,2);
                 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistLPS2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -475,7 +482,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - BAMlocs(k,:)).^2,2);
                 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistProtein2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -492,7 +499,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - LptDlocs(k,:)).^2,2);
                 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistLPS2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -596,7 +603,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - BAMlocs(k,:)).^2,2);
 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistProtein2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -613,7 +620,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - LptDlocs(k,:)).^2,2);
 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistLPS2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -635,7 +642,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - BAMlocs(k,:)).^2,2);
 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistProtein2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
@@ -655,7 +662,7 @@ while time < maxTime && prematureEnd == 0
                 dists = sum((vertices - LptDlocs(k,:)).^2,2);
 
                 % 22500 = 150^2
-                closeDists = sum(dists < 22500);
+                closeDists = sum(dists < maxInsDistLPS2);
                 if closeDists > 0
                     % store indices
                     insertionPoints(index) = k;
