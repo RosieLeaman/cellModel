@@ -20,16 +20,16 @@
 % insertions
 
 function flows = calcFlow(allPos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,smVecsY)
-%%%% new %%%%
 
-fakeInsertions = zeros(size(insertionLocsProtein,1)*21,2);
+numBAM = size(insertionLocsProtein,1);
+
+fakeInsertions = zeros(numBAM*21,2);
 
 for i=1:size(insertionLocsProtein,1)
     fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsProtein(i,:) + smVecsY;
 end
 
 % calculate the proteinFlow
-%proteinFlow = zeros(size(allPos));
 flows = zeros(size(allPos));
 
 % go through each insertion point adding flow from that insertion point to
@@ -40,23 +40,21 @@ for i = 1:size(fakeInsertions,1)
     posToInsertions = allPos - fakeInsertions(i,:);
     % this is weirdly faster than norm() for very large numbers of
     % iterations
-    distToInsertions = posToInsertions(:,1).^2 + posToInsertions(:,2).^2;
+    distToInsertions = (posToInsertions(:,1).^2 + posToInsertions(:,2).^2);
     
-    %proteinFlow = proteinFlow + posToInsertions./distToInsertions;
-    flows = flows + insRateProtein*posToInsertions./distToInsertions;
+    invDists = 1./distToInsertions;
+    
+    newFlow = insRateProtein*posToInsertions.*invDists;
+    
+    flows = flows + newFlow;
 end
 
-%proteinFlow = proteinFlow*insRateProtein;
-
-
+% do same for LPS
 fakeInsertions = zeros(size(insertionLocsLPS,1)*21,2);
 
 for i=1:size(insertionLocsLPS,1)
     fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsLPS(i,:) + smVecsY;
 end
-
-% calculate the proteinFlow
-%LPSFlow = zeros(size(allPos));
 
 % go through each insertion point adding flow from that insertion point to
 % each points flow
@@ -68,58 +66,60 @@ for i = 1:size(fakeInsertions,1)
     % iterations
     distToInsertions = posToInsertions(:,1).^2 + posToInsertions(:,2).^2;
     
-    %LPSFlow = LPSFlow + posToInsertions./distToInsertions;
-    flows = flows + insRateLPS*posToInsertions./distToInsertions;
+    invDists = 1./distToInsertions;
+    
+    newFlow = insRateLPS*posToInsertions.*invDists;
+    
+    flows = flows + newFlow;
 end
-
-%LPSFlow = LPSFlow*insRateLPS/(2*pi);
 
 flows = flows./(2*pi);
 
-%flows = proteinFlow + LPSFlow;
 
-%%%% old %%%%
+
+% numBAM = size(insertionLocsProtein,1);
+% 
+% fakeInsertions = zeros(numBAM*21,2);
+% 
+% for i=1:size(insertionLocsProtein,1)
+%     fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsProtein(i,:) + smVecsY;
+% end
+% 
+% % calculate the proteinFlow
 % flows = zeros(size(allPos));
 % 
-% for vertex = 1:size(allPos,1)
-%     pos = allPos(vertex,:);
+% % go through each insertion point adding flow from that insertion point to
+% % each points flow
 % 
-%     proteinFlow = [0,0];
-% 
-%     % calculate flow due to proteins
-% 
-%     for i=1:size(insertionLocsProtein,1)
-%         posToInsertionVec = pos-insertionLocsProtein(i,:);
-% 
-%         posToInsertionVecsY = posToInsertionVec(2) + smVecsY;
-% 
-%         distToInsertions = posToInsertionVec(1).^2+posToInsertionVecsY.^2;
-% 
-%         flow = [sum(posToInsertionVec(1)./distToInsertions),sum(posToInsertionVecsY./distToInsertions)];
-% 
-%         proteinFlow = proteinFlow + flow;
-%     end
-% 
-%     proteinFlow = proteinFlow*insRateProtein/(2*pi);
-% 
-% %     % calculate flow due to LPS
-% % 
-%      LPSflow = [0,0];
-% % 
-% %     for i=1:size(insertionLocsLPS,1)
-% %         posToInsertionVec = pos-insertionLocsLPS(i,:);
-% % 
-% %         posToInsertionVecsY = posToInsertionVec(2) + smVecsY;
-% % 
-% %         distToInsertions = posToInsertionVec(1).^2+posToInsertionVecsY.^2;
-% % 
-% %         flow = [sum(posToInsertionVec(1)./distToInsertions),sum(posToInsertionVecsY./distToInsertions)];
-% % 
-% %         LPSflow = LPSflow + flow;
-% %     end
-% % 
-%     LPSflow = LPSflow*insRateLPS/(2*pi);
-% 
-%     flows(vertex,:) = proteinFlow + LPSflow;
-%     flows(vertex,:) = proteinFlow;
+% for i = 1:size(fakeInsertions,1)
+%     % distance from the point to that insertion point
+%     posToInsertions = allPos - fakeInsertions(i,:);
+%     % this is weirdly faster than norm() for very large numbers of
+%     % iterations
+%     distToInsertions = posToInsertions(:,1).^2 + posToInsertions(:,2).^2;
+%     
+%     flows = flows + insRateProtein*posToInsertions./distToInsertions;
 % end
+% 
+% % do same for LPS
+% fakeInsertions = zeros(size(insertionLocsLPS,1)*21,2);
+% 
+% for i=1:size(insertionLocsLPS,1)
+%     fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsLPS(i,:) + smVecsY;
+% end
+% 
+% % go through each insertion point adding flow from that insertion point to
+% % each points flow
+% 
+% for i = 1:size(fakeInsertions,1)
+%     % distance from the point to that insertion point
+%     posToInsertions = allPos - fakeInsertions(i,:);
+%     % this is weirdly faster than norm() for very large numbers of
+%     % iterations
+%     distToInsertions = posToInsertions(:,1).^2 + posToInsertions(:,2).^2;
+%     
+%     flows = flows + insRateLPS*posToInsertions./distToInsertions;
+% end
+% 
+% flows = flows./(2*pi);
+% 
