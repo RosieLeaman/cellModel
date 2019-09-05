@@ -274,10 +274,6 @@ while time < maxTime && prematureEnd == 0
         for poly = 1:numel(proteinVerticesLptDs)
             % but only if the insertion point is close to at least one
             % vertex
-            count
-            proteinVertices
-            proteinVerticesLptDs
-            size(BAMlocs)
             pos = proteinVertices{poly}(1,:);
             if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
                 proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
@@ -299,7 +295,7 @@ while time < maxTime && prematureEnd == 0
     
     % work out current area
     
-    currentArea = initialArea*exp(sqrtGrowthRate*time);
+    %currentArea = initialArea*exp(sqrtGrowthRate*time);
     
     if newBamRandom < insRateBAM*dt
     %if newBamRandom < insRateBAM*dt*currentArea
@@ -310,7 +306,9 @@ while time < maxTime && prematureEnd == 0
         % adjust the x one to be uniform between -currentMaxLen and
         % currentMaxLen
         % and y one to be uniform between 0 and membraneCircumference
-        newBAMloc(1) = newBAMloc(1)*cellLength-meanRightEdge;
+%         newBAMloc(1) = newBAMloc(1)*cellLength-meanRightEdge;
+%         newBAMloc(2) = newBAMloc(2)*membraneCircumference;
+        newBAMloc(1) = newBAMloc(1)*500-250;
         newBAMloc(2) = newBAMloc(2)*membraneCircumference;
         
         % we do not allow the insertion if it is within distance 1 of an
