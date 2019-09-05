@@ -1,4 +1,4 @@
-function runModel(m)
+function model = runModel(m)
 % m is number of iterations
 
 if nargin < 1
@@ -6,7 +6,7 @@ if nargin < 1
 end
 
 % set the random seed
-%rng(27)
+rng(27)
 
 % set up non-changing settings
 
@@ -19,13 +19,15 @@ settings.dt = 0.01;
 settings.maxTime = m*0.01;
 settings.surfaceTensionFlag = 0;
 settings.surfaceTensionStrength = 0;
-settings.splitFlag = 0;
+settings.splitFlag = 1;
 settings.plotEvery = 0;
 
 settings.insRateProtein = 1500;
 settings.insRateLPS = 1500;
 settings.insRateBAM = 10;
-settings.insRateLptD = 0.022;  % = 300/15(30^3) p46 lab book 4
+settings.insRateLptD = 0.022;  % 0.022 = 300/15(30^3) p46 lab book 4
+
+settings.BAMtype = 0; %0 = random 1 = mid-cell
 
 % set up save location and file structures
 % find our current directory
@@ -61,6 +63,8 @@ for i = 1500
     
     %try
     model = mainModel(0,settings,initPositions);
+    
+    figure;
     visualiseSimple(model.BAMlocs,model.proteinVertices,model.LptDlocs,model.lpsVertices,model.rightEdge,model.leftEdge);
     %catch e
 %         e
