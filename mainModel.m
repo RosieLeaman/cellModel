@@ -196,15 +196,11 @@ model.leftEdge = leftEdge;
 
 model.settings = settings;
 
-% while time is less than max time
-count = 0;
-prematureEnd = 0;
-
 fig = figure;
 visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
-title(['time is ',num2str(time)])
-saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
-%close(fig)
+title('initial')
+saveas(fig,[saveLocation,'initial.png']);
+close(fig)
 
 % insRateProtein
 % insRateLPS
@@ -218,15 +214,29 @@ maxInsDistLPS = (insRateProtein*exp(insertionAccuracy))/(2*pi);
 maxInsDistProtein2 = maxInsDistProtein^2;
 maxInsDistLPS2 = maxInsDistLPS^2;
 
+% while time is less than max time
+itCount = 0;
+prematureEnd = 0;
+
+% things we might want to calculate
+
+cellLength = zeros(1,floor(maxTime/dt));
+numBAMs = zeros(1,floor(maxTime/dt));
+numLptDs = zeros(1,floor(maxTime/dt));
+
 while time < maxTime && prematureEnd == 0
     
-    count = count + 1;
+    itCount = itCount + 1;
+    
+    % calculate stuffs
+    numBAMs(itCount) = size(BAMlocs,1);
+    numLptDs(itCount) = size(LptDlocs,1);
     
     % calculate the mean left and right edge position
     
     meanLeftEdge = mean(leftEdge(:,1));
     meanRightEdge = mean(rightEdge(:,1));
-    cellLength = meanRightEdge - meanLeftEdge;
+    cellLength(itCount) = meanRightEdge - meanLeftEdge;
     
     % we need to maintain a list of newly inserted insertion points, or at
     % least their indices
@@ -306,10 +316,14 @@ while time < maxTime && prematureEnd == 0
         % adjust the x one to be uniform between -currentMaxLen and
         % currentMaxLen
         % and y one to be uniform between 0 and membraneCircumference
-%         newBAMloc(1) = newBAMloc(1)*cellLength-meanRightEdge;
-%         newBAMloc(2) = newBAMloc(2)*membraneCircumference;
-        newBAMloc(1) = newBAMloc(1)*500-250;
-        newBAMloc(2) = newBAMloc(2)*membraneCircumference;
+        
+        if settings.BAMtype == 0
+            newBAMloc(1) = newBAMloc(1)*cellLength(itCount)-meanRightEdge;
+            newBAMloc(2) = newBAMloc(2)*membraneCircumference;
+        else
+            newBAMloc(1) = newBAMloc(1)*500-250;
+            newBAMloc(2) = newBAMloc(2)*membraneCircumference;
+        end
         
         % we do not allow the insertion if it is within distance 1 of an
         % already existing BAM
@@ -557,12 +571,12 @@ while time < maxTime && prematureEnd == 0
     plotSplit = 0;
     if splitFlag == 1
         
-        if mod(count,10) == 0
+        if mod(itCount,10) == 0
     
-            [problems,newModel] = checkPolygonDistances2(model,1,0);
+            [problems,newProteinVertices,indexRemoved] = checkPolygonDistances2(proteinVertices,1,0);
 
             if problems == 1
-                %disp('we have located a problem')
+                %disp('a problem happened, changing model')
                 % we have regions that are too close
                 % snap a picture
                 if plotSplit == 1
@@ -570,13 +584,15 @@ while time < maxTime && prematureEnd == 0
                     visualiseSimple(model)
 
                     title(['some regions are too close',num2str(time)])
-                    saveas(fig,[saveLocation,'tooClose-it',num2str(count),'.png']);
+                    saveas(fig,[saveLocation,'tooClose-it',num2str(itCount),'.png']);
                     close(fig)
                 end
 
                 % resolve the issues
 
-                model = newModel;
+                proteinVertices = newProteinVertices;
+                proteinVerticesBAMs(indexRemoved) = [];
+                proteinVerticesLptDs(indexRemoved) = [];
 
                 % take a new picture of the resolution
 
@@ -585,10 +601,9 @@ while time < maxTime && prematureEnd == 0
                     visualiseSimple(model)
 
                     title(['resolution',num2str(time)])
-                    saveas(fig,[saveLocation,'resolution-it',num2str(count),'.png']);
+                    saveas(fig,[saveLocation,'resolution-it',num2str(itCount),'.png']);
                     close(fig)
                 end
-
             end
         end
     end
@@ -596,7 +611,7 @@ while time < maxTime && prematureEnd == 0
     % every so many iterations re-check how close vertices are to
     % insertions
     
-    if mod(count,25) == 0
+    if mod(itCount,25) == 0
         for poly = 1:numel(proteinVertices)
             % PROTEIN VS BAM
             vertices = proteinVertices{poly};
@@ -681,11 +696,11 @@ while time < maxTime && prematureEnd == 0
     end
     
     % take a picture
-    if mod(count,plotEvery) == 0
+    if mod(itCount,plotEvery) == 0
         fig = figure;
         visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
         title(['time is ',num2str(time)])
-        saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
+        saveas(fig,[saveLocation,'it-',num2str(itCount),'.png']);
         %close(fig)
     end
     
@@ -732,6 +747,10 @@ model.LptDlocs = LptDlocs;
 
 model.rightEdge = rightEdge;
 model.leftEdge = leftEdge;
+
+model.cellLength = cellLength;
+model.numBAMs = numBAMs;
+model.numLptDs = numLptDs;
 
 if plotYes == 1
     %visualiseSimple(model)
