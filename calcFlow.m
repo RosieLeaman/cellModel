@@ -19,14 +19,14 @@
 % flow; 1x2 row vector which is the flow felt at pos caused by the
 % insertions
 
-function flows = calcFlow(allPos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,smVecsY)
+function flows = calcFlow(allPos,insertionLocsProtein,insRateProtein,insertionLocsLPS,insRateLPS,smVecs)
 
 numBAM = size(insertionLocsProtein,1);
 
 fakeInsertions = zeros(numBAM*21,2);
 
 for i=1:size(insertionLocsProtein,1)
-    fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsProtein(i,:) + smVecsY;
+    fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsProtein(i,:) + smVecs;
 end
 
 % calculate the proteinFlow
@@ -53,7 +53,7 @@ end
 fakeInsertions = zeros(size(insertionLocsLPS,1)*21,2);
 
 for i=1:size(insertionLocsLPS,1)
-    fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsLPS(i,:) + smVecsY;
+    fakeInsertions(21*(i-1)+1:21*i,:) = insertionLocsLPS(i,:) + smVecs;
 end
 
 % go through each insertion point adding flow from that insertion point to
