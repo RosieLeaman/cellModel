@@ -200,11 +200,11 @@ model.settings = settings;
 count = 0;
 prematureEnd = 0;
 
-fig = figure;
-visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
-title(['time is ',num2str(time)])
-saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
-close(fig)
+% fig = figure;
+% visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge);
+% title(['time is ',num2str(time)])
+% saveas(fig,[saveLocation,'it-',num2str(count),'.png']);
+% close(fig)
 % 
 % insRateProtein
 % insRateLPS
@@ -274,6 +274,10 @@ while time < maxTime && prematureEnd == 0
         for poly = 1:numel(proteinVerticesLptDs)
             % but only if the insertion point is close to at least one
             % vertex
+            count
+            proteinVertices
+            proteinVerticesLptDs
+            size(BAMlocs)
             pos = proteinVertices{poly}(1,:);
             if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
                 proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
@@ -297,7 +301,8 @@ while time < maxTime && prematureEnd == 0
     
     currentArea = initialArea*exp(sqrtGrowthRate*time);
     
-    if newBamRandom < insRateBAM*dt*currentArea
+    if newBamRandom < insRateBAM*dt
+    %if newBamRandom < insRateBAM*dt*currentArea
         % if yes add a BAM to a new randomly chosen location
         
         newBAMloc = rand(1,2); % gives two uniform random numbers
@@ -353,9 +358,9 @@ while time < maxTime && prematureEnd == 0
     % have to loop through all polygons, then all pairs of vertices
     for poly = 1:numel(proteinVertices)
         if numel(LptDlocs) > 0
-            flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs(proteinVerticesLptDs{poly},:),insRateLPS,membraneCircumference,smVecsY);
+            flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,LptDlocs(proteinVerticesLptDs{poly},:),insRateLPS,smVecsY);
         else
-            flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,[],insRateLPS,membraneCircumference,smVecsY);
+            flow = calcFlow(proteinVertices{poly},BAMlocs(proteinVerticesBAMs{poly},:),insRateProtein,[],insRateLPS,smVecsY);
         end
         proteinVertices{poly} = proteinVertices{poly} + flow*dt;
     end
@@ -364,14 +369,14 @@ while time < maxTime && prematureEnd == 0
     % have to loop through all polygons, then all pairs of vertices
 
     for poly = 1:numel(lpsVertices)
-        flow = calcFlow(lpsVertices{poly},BAMlocs(lpsVerticesBAMs{poly},:),insRateProtein,LptDlocs(lpsVerticesLptDs{poly},:),insRateLPS,membraneCircumference,smVecsY);
+        flow = calcFlow(lpsVertices{poly},BAMlocs(lpsVerticesBAMs{poly},:),insRateProtein,LptDlocs(lpsVerticesLptDs{poly},:),insRateLPS,smVecsY);
         lpsVertices{poly} = lpsVertices{poly} + flow*dt;
     end
     
-    flows = calcFlow(rightEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+    flows = calcFlow(rightEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,smVecsY);
     rightEdge = rightEdge + flows*dt;
     
-    flows = calcFlow(leftEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+    flows = calcFlow(leftEdge,BAMlocs,insRateProtein,LptDlocs,insRateLPS,smVecsY);
     leftEdge = leftEdge + flows*dt;
     
     % move insertion points (lps)
@@ -385,7 +390,7 @@ while time < maxTime && prematureEnd == 0
         tempLptDlocs = LptDlocs;
         tempLptDlocs(j,:) = [];
         
-        flow = calcFlow(LptDlocs(j,:),BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,membraneCircumference,smVecsY);
+        flow = calcFlow(LptDlocs(j,:),BAMlocs,insRateProtein,tempLptDlocs,insRateLPS,smVecsY);
 
         movedLptDlocs(j,:) = LptDlocs(j,:) + flow*dt;
         
@@ -404,7 +409,7 @@ while time < maxTime && prematureEnd == 0
         tempBAMlocs = BAMlocs;
         tempBAMlocs(j,:) = [];
 
-        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,LptDlocs,insRateLPS,membraneCircumference,smVecsY);
+        flow = calcFlow(BAMlocs(j,:),tempBAMlocs,insRateProtein,LptDlocs,insRateLPS,smVecsY);
         
         movedBAMlocs(j,:) = BAMlocs(j,:) + flow*dt;        
     end
@@ -650,7 +655,7 @@ while time < maxTime && prematureEnd == 0
                 end
             end
 
-            proteinVerticesBAMs{poly} = insertionPoints;
+            lpsVerticesBAMs{poly} = insertionPoints;
             
             % LPS VS LPTD
             vertices = lpsVertices{poly};
@@ -670,7 +675,7 @@ while time < maxTime && prematureEnd == 0
                 end
             end
 
-            proteinVerticesLptDs{poly} = insertionPoints;
+            lpsVerticesLptDs{poly} = insertionPoints;
            
         end
     end
