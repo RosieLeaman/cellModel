@@ -2,25 +2,28 @@
 % defining how close is too close, and if they are joins them into one
 % polygon. Issues are resolved once per iteration.
 
-function [problems,newModel] = checkPolygonDistances2(model,tooClose,plotYes)
+% currently only deals with protein vertices
 
+function [problems,newProteinVertices,indexRemoved] = checkPolygonDistances2(proteinVertices,tooClose,plotYes)
+%disp('checking')
 % make a new model
-newModel = model;
+newProteinVertices = proteinVertices;
 problems = 0;
+indexRemoved = 0;
 
 % first we check for whether two different protein regions are close
 % together, and should be joined into one.
 foundProblem = 0;
 
-for proteinBlob1 = 1:numel(model.proteinVertices)
-    for proteinBlob2 = proteinBlob1+1:numel(model.proteinVertices)
+for proteinBlob1 = 1:numel(proteinVertices)
+    for proteinBlob2 = proteinBlob1+1:numel(proteinVertices)
         % we go through each vertex in proteinBlob1 and see if it's close
         % to any vertices in proteinBlob2
-        for i=1:size(model.proteinVertices{proteinBlob1},1)
-            x = model.proteinVertices{proteinBlob1}(i,:);
+        for i=1:size(proteinVertices{proteinBlob1},1)
+            x = proteinVertices{proteinBlob1}(i,:);
             
             % subtract the point x from each vertex in proteinBlob2
-            distances = model.proteinVertices{proteinBlob2} - x;
+            distances = proteinVertices{proteinBlob2} - x;
             distances = distances.^2; % squared distance
             distances = sum(distances,2); % sum the x and y squares for each point
             
@@ -44,21 +47,27 @@ end
 
 if foundProblem == 1
     problems = 1;
-    if plotYes == 1
-        figure;
-        visualiseSimple(model)
-    end
     
     %disp(['an issue was found between polygons ',num2str(proteinBlob1),' and ',num2str(proteinBlob2)])
     
+%     figure;
+%     hold on;
+%     for i=1:numel(proteinVertices)
+%         plot(proteinVertices{i}(:,1),proteinVertices{i}(:,2),'kx-')
+%     end
+%     plot(proteinVertices{proteinBlob1}(:,1),proteinVertices{proteinBlob1}(:,2),'ro-')
+%     plot(proteinVertices{proteinBlob2}(:,1),proteinVertices{proteinBlob2}(:,2),'ro-')
+    
     % an issue was found, resolve it.
-    newVertices = resolveTwoSame(model.proteinVertices{proteinBlob1},model.proteinVertices{proteinBlob2},plotYes);
+    newVertices = resolveTwoSame(proteinVertices{proteinBlob1},proteinVertices{proteinBlob2},plotYes);
     
     % remove one of the polygons
-    newModel.proteinVertices(proteinBlob2) = [];
+    newProteinVertices(proteinBlob2) = [];
+    indexRemoved = proteinBlob2;
     
     % replace the other polygon with the new vertices
-    newModel.proteinVertices{proteinBlob1} = newVertices;
+    newProteinVertices{proteinBlob1} = newVertices;
+
 end
 
 % 
@@ -90,11 +99,11 @@ end
 % 
 % % then we want to check every protein blob to see if its close to an LPS blob
 % index = 1;
-% for proteinBlob=1:numel(model.proteinVertices)
+% for proteinBlob=1:numel(proteinVertices)
 %     for lpsBlob=1:numel(model.lpsVertices)
 %         % go through each protein vertex
-%         for i=1:size(model.proteinVertices{proteinBlob},1)
-%             x = model.proteinVertices{proteinBlob}(i,:);
+%         for i=1:size(proteinVertices{proteinBlob},1)
+%             x = proteinVertices{proteinBlob}(i,:);
 %             % find the distance from this vertex to all the LPS vertices in
 %             % lpsBlob
 %             distances = model.lpsVertices{lpsBlob} - x;
@@ -121,22 +130,22 @@ end
 % % maybe we should check if the distance round the polygon is ALSO > 1
 % index = 1;
 % finished = 0;
-% for proteinBlob = 1:numel(model.proteinVertices)
-%     for i=1:size(model.proteinVertices{proteinBlob},1)
-%         x = model.proteinVertices{proteinBlob}(i,:);
-%         for j=i+1:size(model.proteinVertices{proteinBlob},1)
-%             y = model.proteinVertices{proteinBlob}(j,:);
+% for proteinBlob = 1:numel(proteinVertices)
+%     for i=1:size(proteinVertices{proteinBlob},1)
+%         x = proteinVertices{proteinBlob}(i,:);
+%         for j=i+1:size(proteinVertices{proteinBlob},1)
+%             y = proteinVertices{proteinBlob}(j,:);
 %             % check if they are near as the crow flies
 %             if findDist(x,y) < 1
 %                 % but also far around the polygon
-%                 if findDistRoundPolygon(i,j,model.proteinVertices{proteinBlob}) > 2*pi
+%                 if findDistRoundPolygon(i,j,proteinVertices{proteinBlob}) > 2*pi
 %                     % but also, we need to check whether the part of the
 %                     % polygon between the two points in inside or outside
 %                     % the polygon. Outside is no problem
 %                     
 %                     % had to change this to checking a whole line, not just
 %                     % one point as there were issues with overhangs
-%                     inside = checkLineInPolygon(x,y,model.proteinVertices{proteinBlob});
+%                     inside = checkLineInPolygon(x,y,proteinVertices{proteinBlob});
 %                     if inside == 1
 %                         %disp('found a sketch')
 %                         problemFlag = 1;

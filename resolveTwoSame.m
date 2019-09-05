@@ -54,7 +54,6 @@ if plotYes == 1
 end
 
 % find the points that are not an issue
-
 notProblemVertices1 = 1:size(vertices1Copy,1);
 notProblemVertices1 = notProblemVertices1(~polygon1Inside);
 notProblemVertices2 = 1:size(vertices2Copy,1);
@@ -67,29 +66,48 @@ end
 
 % connect the two
 % shuffle the indices so they are contiguous (in real space)
+% this plots the difference between the indices that are OK. Large jumps
+% indicate indices that have been removed. Should be like
+% [1,2,3,70,71,72,...]
 test1 = diff(notProblemVertices1);
 test2 = diff(notProblemVertices2);
 
-N1 = find(test1 > 1);
-N2 = find(test2 > 1);
+% in the case where one is completely inside the other, we just return the
+% outer. So do that here (otherwise the later bit errors)
 
-if numel(N1) == 0 && numel(N2) > 0
-    % polygon 1 is contiguous and 2 is not
-    %disp('case1')
-    newVertices = [vertices2(notProblemVertices2(1:N2),:);vertices1(notProblemVertices1,:);vertices2(notProblemVertices2(N2+1:end),:)];
-elseif numel(N2) == 0 && numel(N1) > 0
-    % opposite
-    %disp('case2')
-    newVertices = [vertices1(notProblemVertices1(1:N1),:);vertices2(notProblemVertices2,:);vertices1(notProblemVertices1(N1+1:end),:)];
+if numel(notProblemVertices1) == 0
+    %disp('taking polygon 2')
+    newVertices = vertices2;
+elseif numel(notProblemVertices2) == 0
+    %disp('taking polygon 1')
+    newVertices = vertices1;
 else
-    % neither is
-    %disp('case')
-    newVertices = [vertices1(notProblemVertices1(1:N1),:);vertices2(notProblemVertices2(N2+1:end),:);vertices2(notProblemVertices2(1:N2),:);vertices1(notProblemVertices1(N1+1:end),:)];
+    %disp('pick n mix')
+    % we have to mix and match from both. This requires more thought.
+    
+    % we need to find where the large jumps (i.e. jumps larger than 1)
+    N1 = find(test1 > 1);
+    N2 = find(test2 > 1);
+
+    if numel(N1) == 0 && numel(N2) > 0
+        % polygon 1 is contiguous and 2 is not
+        %disp('case1')
+        newVertices = [vertices2(notProblemVertices2(1:N2),:);vertices1(notProblemVertices1,:);vertices2(notProblemVertices2(N2+1:end),:)];
+    elseif numel(N2) == 0 && numel(N1) > 0
+        % opposite
+        %disp('case2')
+        newVertices = [vertices1(notProblemVertices1(1:N1),:);vertices2(notProblemVertices2,:);vertices1(notProblemVertices1(N1+1:end),:)];
+    else
+        % neither is
+        %disp('case')
+        newVertices = [vertices1(notProblemVertices1(1:N1),:);vertices2(notProblemVertices2(N2+1:end),:);vertices2(notProblemVertices2(1:N2),:);vertices1(notProblemVertices1(N1+1:end),:)];
+    end
 end
 
 if plotYes == 1
     figure;
     plot(newVertices(:,1),newVertices(:,2),'bd-')
+    title('resolved')
 end
 
 % 
