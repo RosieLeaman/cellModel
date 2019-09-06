@@ -89,7 +89,7 @@ if nargin < 2
     % we have the settings, but not the initial positions of BAM and LptD.
     % Set these positions now
     
-    initPositions.BAMlocs = [[0,0.5*pi]];
+    initPositions.BAMlocs = [0,0.5*pi];
     initPositions.LptDlocs = [];
     initPositions.proteinVertices = {};
     initPositions.lpsVertices = {};
@@ -533,7 +533,7 @@ while time < maxTime && prematureEnd == 0
     
     % move points under surface tension if required
     
-    if settings.surfaceTensionFlag == 1
+    if surfaceTensionFlag == 1
         
         % we want to move the vertices of each polygon due to surface
         % tension
@@ -576,7 +576,9 @@ while time < maxTime && prematureEnd == 0
             [problems,newProteinVertices,indexRemoved] = checkPolygonDistances2(proteinVertices,1,0);
 
             if problems == 1
-                %disp('a problem happened, changing model')
+                disp('some regions too close, changing model')
+                disp(['iteration: ',num2str(itCount)])
+
                 % we have regions that are too close
                 % snap a picture
                 if plotSplit == 1
@@ -589,10 +591,14 @@ while time < maxTime && prematureEnd == 0
                 end
 
                 % resolve the issues
-
+               
                 proteinVertices = newProteinVertices;
                 proteinVerticesBAMs(indexRemoved) = [];
                 proteinVerticesLptDs(indexRemoved) = [];
+
+                for i=1:numel(proteinVertices)
+                    assert(size(proteinVertices,1) ~= 0)
+                end
 
                 % take a new picture of the resolution
 
