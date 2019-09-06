@@ -48,7 +48,7 @@ end
 if foundProblem == 1
     problems = 1;
     
-    %disp(['an issue was found between polygons ',num2str(proteinBlob1),' and ',num2str(proteinBlob2)])
+    disp(['an issue was found between polygons ',num2str(proteinBlob1),' and ',num2str(proteinBlob2)])
     
 %     figure;
 %     hold on;
@@ -67,6 +67,14 @@ if foundProblem == 1
     
     % replace the other polygon with the new vertices
     newProteinVertices{proteinBlob1} = newVertices;
+    
+    % make sure everything is OK
+    
+    for j=1:numel(newVertices)
+        % make sure all polygons actually have vertices.
+        assert(size(newVertices{j},1)~=0)
+        assert(size(newVertices{j},2)~=0)
+    end
 
 end
 
