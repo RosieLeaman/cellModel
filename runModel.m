@@ -1,8 +1,33 @@
-function model = runModel(m)
+function model = runModel(m,useGivenInsertions)
 % m is number of iterations
+% useGivenInsertions is 0 if not and a file location if yes
 
 if nargin < 1
-    m = 50;
+    m = 3000;
+end
+
+if useGivenInsertions ~= 0
+    data = load(useGivenInsertions);
+    oldModel = data.model;
+    BAMlocs = [];
+    index = 1;
+    for j=1:size(oldModel.BAMlocs,1)
+        if oldModel.BAMlocs(j,1) > -2000 && oldModel.BAMlocs(j,1) < 0
+            BAMlocs(index,:) = oldModel.BAMlocs(j,:);
+            index = index + 1;
+        end
+    end
+    BAMlocs(:,1) = BAMlocs(:,1) + 1000;
+
+    LptDlocs = [];
+    index = 1;
+    for j=1:size(oldModel.LptDlocs,1)
+        if oldModel.LptDlocs(j,1) > -2000 && oldModel.LptDlocs(j,1) < 0
+            LptDlocs(index,:) = oldModel.LptDlocs(j,:);
+            index = index + 1;
+        end
+    end
+    LptDlocs(:,1) = LptDlocs(:,1) + 1000;
 end
 
 % set the random seed
@@ -25,7 +50,7 @@ settings.plotEvery = 0;
 settings.insRateProtein = 1500;
 settings.insRateLPS = 1500;
 settings.insRateBAM = 10;
-settings.insRateLptD = 0.022;  % 0.022 = 300/15(30^3) p46 lab book 4
+settings.insRateLptD = 0.1;  % 0.022 = 300/15(30^3) p46 lab book 4
 
 settings.BAMtype = 0; %0 = random 1 = mid-cell
 
@@ -43,16 +68,21 @@ bigSaveFolder = [currentFolder,'/test',timeString];
 % set up initial BAM locations
 % set up initial LptD inside loop as we want to vary this later
 
-% set up initial locations
+% If there are initial locations we only send the location of BAMs/LptDs so
+% that the correct insertion rate is used for the initial protein vertices
+% see if they were passed 
+if nargin > 1
+    initPositions.BAMlocs = BAMlocs;
+    
+    initPositions.LptDlocs = LptDlocs;
+else
+    initPositions.BAMlocs = [];
+    initPositions.proteinVertices = {};
+    initPositions.LptDlocs = [];
+    initPositions.lpsVertices = {};
+end
 
-%initPositions.BAMlocs = [[100,100]];
-
-initPositions.BAMlocs = [];
-initPositions.proteinVertices = {};
-initPositions.LptDlocs = [];
-initPositions.lpsVertices = {};
-
-for i = 1500
+for i = [1500,3000]
     i
     % set up the settings that vary
     settings.insRateProtein = i;
