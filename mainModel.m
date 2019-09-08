@@ -43,14 +43,33 @@ function model = mainModel(plotYes,settings,initPositions)
 
 % we can input either settings or both settings and initial positions
 
-if nargin == 2
-    % we only have settings, not positions, so add the positions
+if nargin == 3
+    % everything has been passed, set the protein and lps vertices
     
-    error('line 50 this code is not written')
+    proteinAddedNewInsertion = settings.insRateProtein*settings.dt;
+    lpsAddedNewInsertion = settings.insRateProtein*settings.dt;
     
-elseif nargin < 2
-    % first argument is settings always, this is all the data about
-    % insertion rates and stuff
+    %  we set it in initPositions for now
+    
+    initPositions.proteinVertices = cell(size(initPositions.BAMlocs,1),1);
+    for j = 1:numel(initPositions.proteinVertices)
+        initPositions.proteinVertices{j} = findVerticesNewMaterialCircle(initPositions.BAMlocs(j,:),settings.polygonSides,0,proteinAddedNewInsertion);
+    end
+    
+    initPositions.lpsVertices = cell(size(initPositions.LptDlocs,1),1);
+    for j = 1:numel(initPositions.lpsVertices)
+        initPositions.lpsVertices{j} = findVerticesNewMaterialCircle(initPositions.LptDlocs(j,:),settings.polygonSides,0,lpsAddedNewInsertion);
+    end
+    
+elseif nargin == 2
+    % no initial positions were passed, set them now.
+    initPositions.BAMlocs = [];
+    initPositions.proteinVertices = {};
+    initPositions.LptDlocs = [];
+    initPositions.lpsVertices = {};
+       
+elseif nargin == 1
+    % no settings or initial positions were passed, use some defaults
     
     settings.polygonSides = 251;
 
@@ -83,40 +102,48 @@ elseif nargin < 2
     
     settings.saveLocation = '';
     settings.plotEvery = 25;
-end
-
-if nargin < 2
-    % we have the settings, but not the initial positions of BAM and LptD.
-    % Set these positions now
     
-    initPositions.BAMlocs = [0,0.5*pi];
-    initPositions.LptDlocs = [];
+    % no initial positions were passed, set them now.
+    initPositions.BAMlocs = [];
     initPositions.proteinVertices = {};
+    initPositions.LptDlocs = [];
     initPositions.lpsVertices = {};
-    %initPositions.lpsVertices = NaN(settings.polygonSides,2);
-    
-    % for all existing insertions add the corresponding material (note this
-    % assumes one time step, if you want to skip you must pass the
-    % vertices as an input)
-    
-    for i=1:size(initPositions.BAMlocs,1)
-        initPositions.BAMlocs(i,:)
-        vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(i,:),settings.polygonSides,0,settings.proteinAddedNewInsertion);
-        initPositions.proteinVertices{i} = vertices;
-        
-        % note here we need to use settings.xyz as the plain non
-        % settings.xyz parameters are set after this if statement
-    end
-
-    for i=1:size(initPositions.LptDlocs,1)
-        vertices = findVerticesNewMaterialCircle(initPositions.LptDlocs(i,:),settings.polygonSides,0,settings.LPSAddedNewInsertion);
-        initPositions.lpsVertices{i} = vertices;
-    end
-    
+else
+    error('No plotting command was provided, this must be')
 end
 
-% set all the used parameters now, either to the values that were passed
-% (if nargin >= 1) or to the values set above (if nargin < 1)
+% if nargin < 2
+%     % we have the settings, but not the initial positions of BAM and LptD.
+%     % Set these positions now
+%     
+%     initPositions.BAMlocs = [0,0.5*pi];
+%     initPositions.LptDlocs = [];
+%     initPositions.proteinVertices = {};
+%     initPositions.lpsVertices = {};
+%     %initPositions.lpsVertices = NaN(settings.polygonSides,2);
+%     
+%     % for all existing insertions add the corresponding material (note this
+%     % assumes one time step, if you want to skip you must pass the
+%     % vertices as an input)
+%     
+%     for i=1:size(initPositions.BAMlocs,1)
+%         initPositions.BAMlocs(i,:)
+%         vertices = findVerticesNewMaterialCircle(initPositions.BAMlocs(i,:),settings.polygonSides,0,settings.proteinAddedNewInsertion);
+%         initPositions.proteinVertices{i} = vertices;
+%         
+%         % note here we need to use settings.xyz as the plain non
+%         % settings.xyz parameters are set after this if statement
+%     end
+% 
+%     for i=1:size(initPositions.LptDlocs,1)
+%         vertices = findVerticesNewMaterialCircle(initPositions.LptDlocs(i,:),settings.polygonSides,0,settings.LPSAddedNewInsertion);
+%         initPositions.lpsVertices{i} = vertices;
+%     end
+%     
+% end
+
+% set all the used parameters now, now that everything has either been
+% passed or set above
 % we have to set the variables that are calculated from settings ones here
 % in case we passed in settings
 
@@ -159,28 +186,30 @@ settings.LPSAddedNewInsertion = LPSAddedNewInsertion;
 saveLocation = settings.saveLocation;
 plotEvery = settings.plotEvery;
 
+% accuracy of insertion calculations
+
+insertionAccuracy = 3;
+maxInsDistProtein = (insRateProtein*exp(insertionAccuracy))/(2*pi);
+maxInsDistLPS = (insRateProtein*exp(insertionAccuracy))/(2*pi);
+
+maxInsDistProtein2 = maxInsDistProtein^2;
+maxInsDistLPS2 = maxInsDistLPS^2;
+
 % all information will be saved in the model struct
 
 BAMlocs = initPositions.BAMlocs;
-%BAMlocsInit = initPositions.BAMlocs; % store initial BAMlocs
 LptDlocs = initPositions.LptDlocs;
-%LptDlocsInit = initPositions.LptDlocs; % store initial LptDlocs
 proteinVertices = initPositions.proteinVertices;
 lpsVertices = initPositions.lpsVertices;
 
 % save initial positions of everything
-model.proteinVertices = proteinVertices;
-model.lpsVertices = lpsVertices;
-model.BAMlocs = BAMlocs;
-model.LptDlocs = LptDlocs;
+model.initProteinVertices = proteinVertices;
+model.initLpsVertices = lpsVertices;
+model.initBAMlocs = BAMlocs;
+model.initLptDlocs = LptDlocs;
 
 % store indices of insertion points which are actually relevant
-proteinVerticesBAMs = {}; % This stores the indices of the BAMs that can actually affect each polygon
-proteinVerticesLptDs = {};
-lpsVerticesBAMs = {};
-lpsVerticesLptDs = {};
-%rightEdgeBAMs = [];
-%leftEdgeBAMs = [];
+[proteinVerticesBAMs,proteinVerticesLptDs,lpsVerticesBAMs,lpsVerticesLptDs] = checkAllPolyCloseAllInsertion(proteinVertices,lpsVertices,BAMlocs,LptDlocs,maxInsDistProtein2,maxInsDistLPS2);
 
 % has to be a cell as can have different lengths. Guess it could have zeros
 % but would need to think about this.
@@ -201,18 +230,6 @@ visualiseSimple(BAMlocs,proteinVertices,LptDlocs,lpsVertices,rightEdge,leftEdge)
 title('initial')
 saveas(fig,[saveLocation,'initial.png']);
 close(fig)
-
-% insRateProtein
-% insRateLPS
-% proteinAddedNewInsertion
-% LPSAddedNewInsertion
-
-insertionAccuracy = 3;
-maxInsDistProtein = (insRateProtein*exp(insertionAccuracy))/(2*pi);
-maxInsDistLPS = (insRateProtein*exp(insertionAccuracy))/(2*pi);
-
-maxInsDistProtein2 = maxInsDistProtein^2;
-maxInsDistLPS2 = maxInsDistLPS^2;
 
 % while time is less than max time
 itCount = 0;
@@ -284,9 +301,19 @@ while time < maxTime && prematureEnd == 0
         for poly = 1:numel(proteinVerticesLptDs)
             % but only if the insertion point is close to at least one
             % vertex
-            pos = proteinVertices{poly}(1,:);
-            if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
-                proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
+            try
+                pos = proteinVertices{poly}(1,:);
+                if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
+                    proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
+                end
+            catch
+                proteinVertices
+                poly
+                proteinVertices{poly}
+                pos = proteinVertices{poly}(1,:);
+                if sum((pos-newLptDlocs(lptD,:)).^2) < maxInsDistLPS2
+                    proteinVerticesLptDs{poly}(numel(proteinVerticesLptDs{poly})+1) = newLptDLocsIndex;
+                end
             end
         end
         for poly = 1:numel(lpsVerticesLptDs)
@@ -597,7 +624,8 @@ while time < maxTime && prematureEnd == 0
                 proteinVerticesLptDs(indexRemoved) = [];
 
                 for i=1:numel(proteinVertices)
-                    assert(size(proteinVertices,1) ~= 0)
+                    % just check no sketches occurred
+                    assert(size(proteinVertices{i},1) ~= 0)
                 end
 
                 % take a new picture of the resolution
@@ -618,87 +646,7 @@ while time < maxTime && prematureEnd == 0
     % insertions
     
     if mod(itCount,25) == 0
-        for poly = 1:numel(proteinVertices)
-            % PROTEIN VS BAM
-            vertices = proteinVertices{poly};
-            % note down the insertion points that can actually affect this
-            % polygon
-            insertionPoints = [];
-            index = 1;
-            for k=1:size(BAMlocs,1)
-                dists = sum((vertices - BAMlocs(k,:)).^2,2);
-
-                % 22500 = 150^2
-                closeDists = sum(dists < maxInsDistProtein2);
-                if closeDists > 0
-                    % store indices
-                    insertionPoints(index) = k;
-                    index = index + 1;
-                end
-            end
-
-            proteinVerticesBAMs{poly} = insertionPoints;
-            
-            % PROTEIN VS LPTD
-            insertionPoints = [];
-            index = 1;
-            for k=1:size(LptDlocs,1)
-                dists = sum((vertices - LptDlocs(k,:)).^2,2);
-
-                % 22500 = 150^2
-                closeDists = sum(dists < maxInsDistLPS2);
-                if closeDists > 0
-                    % store indices
-                    insertionPoints(index) = k;
-                    index = index + 1;
-                end
-            end
-
-            proteinVerticesLptDs{poly} = insertionPoints;
-        end
-        % check lps too
-        for poly = 1:numel(lpsVertices)
-            % LPS VS BAM
-            vertices = lpsVertices{poly};
-            % note down the insertion points that can actually affect this
-            % polygon
-            insertionPoints = [];
-            index = 1;
-            for k=1:size(BAMlocs,1)
-                dists = sum((vertices - BAMlocs(k,:)).^2,2);
-
-                % 22500 = 150^2
-                closeDists = sum(dists < maxInsDistProtein2);
-                if closeDists > 0
-                    % store indices
-                    insertionPoints(index) = k;
-                    index = index + 1;
-                end
-            end
-
-            lpsVerticesBAMs{poly} = insertionPoints;
-            
-            % LPS VS LPTD
-            vertices = lpsVertices{poly};
-            % note down the insertion points that can actually affect this
-            % polygon
-            insertionPoints = [];
-            index = 1;
-            for k=1:size(LptDlocs,1)
-                dists = sum((vertices - LptDlocs(k,:)).^2,2);
-
-                % 22500 = 150^2
-                closeDists = sum(dists < maxInsDistLPS2);
-                if closeDists > 0
-                    % store indices
-                    insertionPoints(index) = k;
-                    index = index + 1;
-                end
-            end
-
-            lpsVerticesLptDs{poly} = insertionPoints;
-           
-        end
+        [proteinVerticesBAMs,proteinVerticesLptDs,lpsVerticesBAMs,lpsVerticesLptDs] = checkAllPolyCloseAllInsertion(proteinVertices,lpsVertices,BAMlocs,LptDlocs,maxInsDistProtein2,maxInsDistLPS2);
     end
     
     % take a picture
@@ -783,4 +731,95 @@ end
 
 save([saveLocation,'results.mat'],'model')
 
+end
+
+function [proteinVerticesBAMs,proteinVerticesLptDs,lpsVerticesBAMs,lpsVerticesLptDs] = checkAllPolyCloseAllInsertion(proteinVertices,lpsVertices,BAMlocs,LptDlocs,maxInsDistProtein2,maxInsDistLPS2)
+    % assign empty cell arrays?
+    proteinVerticesBAMs = cell(size(proteinVertices,1),1);
+    proteinVerticesLptDs = cell(size(proteinVertices,1),1);
+    lpsVerticesBAMs = cell(size(lpsVertices,1),1);
+    lpsVerticesLptDs = cell(size(lpsVertices,1),1);
+
+    for poly = 1:numel(proteinVertices)
+        % PROTEIN VS BAM
+        vertices = proteinVertices{poly};
+        % note down the insertion points that can actually affect this
+        % polygon
+        insertionPoints = [];
+        index = 1;
+        for k=1:size(BAMlocs,1)
+            dists = sum((vertices - BAMlocs(k,:)).^2,2);
+
+            % 22500 = 150^2
+            closeDists = sum(dists < maxInsDistProtein2);
+            if closeDists > 0
+                % store indices
+                insertionPoints(index) = k;
+                index = index + 1;
+            end
+        end
+
+        proteinVerticesBAMs{poly} = insertionPoints;
+
+        % PROTEIN VS LPTD
+        insertionPoints = [];
+        index = 1;
+        for k=1:size(LptDlocs,1)
+            dists = sum((vertices - LptDlocs(k,:)).^2,2);
+
+            % 22500 = 150^2
+            closeDists = sum(dists < maxInsDistLPS2);
+            if closeDists > 0
+                % store indices
+                insertionPoints(index) = k;
+                index = index + 1;
+            end
+        end
+
+        proteinVerticesLptDs{poly} = insertionPoints;
+    end
+    
+    % check lps too
+    for poly = 1:numel(lpsVertices)
+        % LPS VS BAM
+        vertices = lpsVertices{poly};
+        % note down the insertion points that can actually affect this
+        % polygon
+        insertionPoints = [];
+        index = 1;
+        for k=1:size(BAMlocs,1)
+            dists = sum((vertices - BAMlocs(k,:)).^2,2);
+
+            % 22500 = 150^2
+            closeDists = sum(dists < maxInsDistProtein2);
+            if closeDists > 0
+                % store indices
+                insertionPoints(index) = k;
+                index = index + 1;
+            end
+        end
+
+        lpsVerticesBAMs{poly} = insertionPoints;
+
+        % LPS VS LPTD
+        vertices = lpsVertices{poly};
+        % note down the insertion points that can actually affect this
+        % polygon
+        insertionPoints = [];
+        index = 1;
+        for k=1:size(LptDlocs,1)
+            dists = sum((vertices - LptDlocs(k,:)).^2,2);
+
+            % 22500 = 150^2
+            closeDists = sum(dists < maxInsDistLPS2);
+            if closeDists > 0
+                % store indices
+                insertionPoints(index) = k;
+                index = index + 1;
+            end
+        end
+
+        lpsVerticesLptDs{poly} = insertionPoints;
+
+    end
 end
