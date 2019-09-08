@@ -61,19 +61,34 @@ if foundProblem == 1
     % an issue was found, resolve it.
     newVertices = resolveTwoSame(proteinVertices{proteinBlob1},proteinVertices{proteinBlob2},plotYes);
     
-    % remove one of the polygons
-    newProteinVertices(proteinBlob2) = [];
-    indexRemoved = proteinBlob2;
-    
-    % replace the other polygon with the new vertices
-    newProteinVertices{proteinBlob1} = newVertices;
-    
     % make sure everything is OK
     
-    for j=1:numel(newVertices)
+    % only do if we can actually make the change (nothing went wrong in
+    % resolveTwoSame
+    
+    if size(newVertices,1)~=0  
+        % remove one of the polygons
+        newProteinVertices(proteinBlob2) = [];
+        indexRemoved = proteinBlob2;
+
+        % replace the other polygon with the new vertices
+        newProteinVertices{proteinBlob1} = newVertices;
+        for j=1:numel(newProteinVertices)
         % make sure all polygons actually have vertices.
-        assert(size(newVertices{j},1)~=0)
-        assert(size(newVertices{j},2)~=0)
+            try
+                assert(size(newProteinVertices{j},1)~=0)
+                assert(size(newProteinVertices{j},2)~=0)
+            catch
+                proteinVertices
+                newProteinVertices
+                newVertices
+                assert(size(newProteinVertices{j},1)~=0)
+                assert(size(newProteinVertices{j},2)~=0)
+            end
+        end
+    else
+        % basically return false, could not successfully join
+        problems = 0;
     end
 
 end
