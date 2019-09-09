@@ -28,10 +28,21 @@ if useGivenInsertions ~= 0
         end
     end
     LptDlocs(:,1) = LptDlocs(:,1) + 1000;
+    
+    initPositions.BAMlocs = BAMlocs;
+    
+    initPositions.LptDlocs = LptDlocs;
+else
+    initPositions.BAMlocs = [];
+    
+    initPositions.LptDlocs = [];
 end
 
-% set the random seed
-rng(27)
+% set the random seed and record it
+rng('shuffle'); % first re-set the random generator, otherwise get same results each time
+randSeed = rand(1); % pick a random seed
+rng(randSeed); % re-seed with this seed
+settings.randSeed = randSeed;
 
 % set up non-changing settings
 
@@ -45,7 +56,7 @@ settings.maxTime = m*0.01;
 settings.surfaceTensionFlag = 0;
 settings.surfaceTensionStrength = 0;
 settings.splitFlag = 1;
-settings.plotEvery = 0;
+settings.plotEvery = 100;
 
 settings.insRateProtein = 1500;
 settings.insRateLPS = 1500;
@@ -71,16 +82,6 @@ bigSaveFolder = [currentFolder,'/test',timeString];
 % If there are initial locations we only send the location of BAMs/LptDs so
 % that the correct insertion rate is used for the initial protein vertices
 % see if they were passed 
-if nargin > 1
-    initPositions.BAMlocs = BAMlocs;
-    
-    initPositions.LptDlocs = LptDlocs;
-else
-    initPositions.BAMlocs = [];
-    initPositions.proteinVertices = {};
-    initPositions.LptDlocs = [];
-    initPositions.lpsVertices = {};
-end
 
 for i = [1500,3000]
     i
