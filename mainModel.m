@@ -595,30 +595,18 @@ while time < maxTime && prematureEnd == 0
     % note that the variable 'tooClose', here set to 1, should be replaced
     % at some point to become a model parameter
     
-    plotSplit = 0;
     if splitFlag == 1
         
         if mod(itCount,10) == 0
-    
+            
             [problems,newProteinVertices,indexRemoved] = checkPolygonDistances2(proteinVertices,1,0);
 
             if problems == 1
-                disp('some regions too close, changing model')
+                disp('some protein regions too close, changing model')
                 disp(['iteration: ',num2str(itCount)])
 
-                % we have regions that are too close
-                % snap a picture
-                if plotSplit == 1
-                    fig = figure;
-                    visualiseSimple(model)
-
-                    title(['some regions are too close',num2str(time)])
-                    saveas(fig,[saveLocation,'tooClose-it',num2str(itCount),'.png']);
-                    close(fig)
-                end
-
                 % resolve the issues
-               
+
                 proteinVertices = newProteinVertices;
                 proteinVerticesBAMs(indexRemoved) = [];
                 proteinVerticesLptDs(indexRemoved) = [];
@@ -627,16 +615,24 @@ while time < maxTime && prematureEnd == 0
                     % just check no sketches occurred
                     assert(size(proteinVertices{i},1) ~= 0)
                 end
+            end
+            
+            % also do a check for LPS, whynot
+            [problems,newLPSVertices,indexRemoved] = checkPolygonDistances2(lpsVertices,1,0);
 
-                % take a new picture of the resolution
+            if problems == 1
+                disp('some lps regions too close, changing model')
+                disp(['iteration: ',num2str(itCount)])
 
-                if plotSplit == 1
-                    fig = figure;
-                    visualiseSimple(model)
+                % resolve the issues
 
-                    title(['resolution',num2str(time)])
-                    saveas(fig,[saveLocation,'resolution-it',num2str(itCount),'.png']);
-                    close(fig)
+                lpsVertices = newLPSVertices;
+                lpsVerticesBAMs(indexRemoved) = [];
+                lpsVerticesLptDs(indexRemoved) = [];
+
+                for i=1:numel(lpsVertices)
+                    % just check no sketches occurred
+                    assert(size(lpsVertices{i},1) ~= 0)
                 end
             end
         end
@@ -656,6 +652,23 @@ while time < maxTime && prematureEnd == 0
         title(['time is ',num2str(time)])
         saveas(fig,[saveLocation,'it-',num2str(itCount),'.png']);
         %close(fig)
+        
+        % also save the results so when it inevitable crashes out before
+        % the end we actually have some data
+        model.proteinVertices = proteinVertices;
+        model.lpsVertices = lpsVertices;
+        model.BAMlocs = BAMlocs;
+        model.LptDlocs = LptDlocs;
+
+        model.rightEdge = rightEdge;
+        model.leftEdge = leftEdge;
+
+        model.cellLength = cellLength;
+        model.numBAMs = numBAMs;
+        model.numLptDs = numLptDs;
+
+        save([saveLocation,'results-it',num2str(itCount),'.mat'],'model')
+        
     end
     
     
@@ -706,6 +719,8 @@ model.cellLength = cellLength;
 model.numBAMs = numBAMs;
 model.numLptDs = numLptDs;
 
+save([saveLocation,'results.mat'],'model')
+
 if plotYes == 1
     %visualiseSimple(model)
 
@@ -728,8 +743,6 @@ if plotYes == 1
     close(fig)
 
 end
-
-save([saveLocation,'results.mat'],'model')
 
 end
 
@@ -790,7 +803,6 @@ function [proteinVerticesBAMs,proteinVerticesLptDs,lpsVerticesBAMs,lpsVerticesLp
         for k=1:size(BAMlocs,1)
             dists = sum((vertices - BAMlocs(k,:)).^2,2);
 
-            % 22500 = 150^2
             closeDists = sum(dists < maxInsDistProtein2);
             if closeDists > 0
                 % store indices
