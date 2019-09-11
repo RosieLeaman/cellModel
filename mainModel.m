@@ -617,25 +617,6 @@ while time < maxTime && prematureEnd == 0
                 end
             end
             
-            % run it twice
-            [problems,newProteinVertices,indexRemoved] = checkPolygonDistances2(proteinVertices,1,0);
-
-            if problems == 1
-                disp('some protein regions too close, changing model')
-                disp(['iteration: ',num2str(itCount)])
-
-                % resolve the issues
-
-                proteinVertices = newProteinVertices;
-                proteinVerticesBAMs(indexRemoved) = [];
-                proteinVerticesLptDs(indexRemoved) = [];
-
-                for i=1:numel(proteinVertices)
-                    % just check no sketches occurred
-                    assert(size(proteinVertices{i},1) ~= 0)
-                end
-            end
-            
             % also do a check for LPS, whynot
             [problems,newLPSVertices,indexRemoved] = checkPolygonDistances2(lpsVertices,1,0);
 
