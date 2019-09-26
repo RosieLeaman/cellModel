@@ -9,29 +9,10 @@ end
 if useGivenInsertions ~= 0
     data = load(useGivenInsertions);
     oldModel = data.model;
-    BAMlocs = [];
-    index = 1;
-    for j=1:size(oldModel.BAMlocs,1)
-        if oldModel.BAMlocs(j,1) > -2000 && oldModel.BAMlocs(j,1) < 0
-            BAMlocs(index,:) = oldModel.BAMlocs(j,:);
-            index = index + 1;
-        end
-    end
-    BAMlocs(:,1) = BAMlocs(:,1) + 1000;
-
-    LptDlocs = [];
-    index = 1;
-    for j=1:size(oldModel.LptDlocs,1)
-        if oldModel.LptDlocs(j,1) > -2000 && oldModel.LptDlocs(j,1) < 0
-            LptDlocs(index,:) = oldModel.LptDlocs(j,:);
-            index = index + 1;
-        end
-    end
-    LptDlocs(:,1) = LptDlocs(:,1) + 1000;
     
-    initPositions.BAMlocs = BAMlocs;
+    initPositions.BAMlocs = oldModel.BAMlocs;
     
-    initPositions.LptDlocs = LptDlocs;
+    initPositions.LptDlocs = oldModel.LptDlocs;
 else
     initPositions.BAMlocs = [];
     
@@ -40,7 +21,7 @@ end
 
 % set the random seed and record it
 rng('shuffle'); % first re-set the random generator, otherwise get same results each time
-randSeed = rand(1); % pick a random seed
+randSeed = randi([0,1000],1); % pick a random seed
 rng(randSeed); % re-seed with this seed
 settings.randSeed = randSeed;
 
@@ -56,12 +37,9 @@ settings.maxTime = m*0.01;
 settings.surfaceTensionFlag = 0;
 settings.surfaceTensionStrength = 0;
 settings.splitFlag = 1;
-settings.plotEvery = 100;
+settings.plotEvery = 200;
 
-settings.insRateProtein = 1500;
-settings.insRateLPS = 1500;
-settings.insRateBAM = 10;
-settings.insRateLptD = 0.1;  % 0.022 = 300/15(30^3) p46 lab book 4
+  % 0.022 = 300/15(30^3) p46 lab book 4
 
 settings.BAMtype = 0; %0 = random 1 = mid-cell
 
@@ -83,12 +61,40 @@ bigSaveFolder = [currentFolder,'/test',timeString];
 % that the correct insertion rate is used for the initial protein vertices
 % see if they were passed 
 
-for i = [1500,3000]
+settings.initialMembraneArea = settings.membraneCircumference*settings.currentMaxLen;
+settings.doublingTime = 30;
+settings.areaFractionProtein = 0.3;
+settings.areaFractionLPS = 1-settings.areaFractionProtein;
+settings.BAMAverage = 445;
+
+settings.LptDaverage = 100:50:300;
+
+for i = 1:numel(settings.LptDaverage)
     i
-    % set up the settings that vary
-    settings.insRateProtein = i;
+    % calculate settings
+    L = settings.LptDaverage(i)
+
+    QL = settings.areaFractionLPS*settings.initialMembraneArea/(settings.doublingTime*L);
+    kL = 9*L/(13*settings.BAMAverage*settings.doublingTime);
+
+    NB0 = 6*settings.areaFractionLPS*settings.initialMembraneArea/(13*(settings.doublingTime^2)*kL*QL);
+    kB = 6*settings.areaFractionLPS*settings.initialMembraneArea/(13*(settings.doublingTime^3)*kL*QL);
+
+    NL0 = 9*settings.areaFractionLPS*settings.initialMembraneArea/(13*settings.doublingTime*QL);
+
+    Qp = (13*settings.areaFractionProtein*settings.doublingTime*kL*QL)./(9*settings.areaFractionLPS);
     
-    settings.saveLocation = [bigSaveFolder,'/test-proteinInsertionRate',num2str(i)];
+    settings.insRateProtein = Qp;
+    settings.insRateLPS = QL;
+    settings.insRateBAM = kB;
+    settings.insRateLptD = kL;
+    
+    [BAMlocs,LptDlocs] = makeInitialBAMlocsLptDlocs(settings.membraneCircumference,NB0,NL0);
+    
+    initPositions.BAMlocs = BAMlocs;
+    initPositions.LptDlocs = LptDlocs;
+    
+    settings.saveLocation = [bigSaveFolder,'/test-klptD',num2str(kL),'-Qlps-',num2str(QL)];
 
     % run the model with given settings
     
@@ -101,4 +107,25 @@ for i = [1500,3000]
 %         e
 %         visualiseSimple(model.BAMlocs,model.proteinVertices,model.LptDlocs,model.lpsVertices,model.rightEdge,model.leftEdge);
 %     end
+end
+
+end
+
+function [BAMlocs,LptDlocs] = makeInitialBAMlocsLptDlocs(membraneCircumference,NBAM,NLptD)
+    BAMlocs = zeros(NBAM,2);
+    for i=1:NBAM
+        newBAMloc = rand(1,2);
+        newBAMloc(1) = 2000*newBAMloc(1)-1000;
+        newBAMloc(2) = membraneCircumference*newBAMloc(2);
+        BAMlocs(i,:) = newBAMloc;
+    end
+    
+    LptDlocs = zeros(NLptD,2);
+    membraneCircumference = 500*pi;
+    for i=1:NLptD
+        newLptDloc = rand(1,2);
+        newLptDloc(1) = 2000*newLptDloc(1)-1000;
+        newLptDloc(2) = membraneCircumference*newLptDloc(2);
+        LptDlocs(i,:) = newLptDloc;
+    end
 end
