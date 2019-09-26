@@ -83,6 +83,16 @@ for ii = 1:numVertices
     
 end
 
+% redistribute vertices
+
+newPoints2 = [newPoints;newPoints;newPoints];
+
+% we fit a spline to these points
+[splineX2,splineY2] = fitSpline(newPoints2);
+
+newPoints(:,1) = ppval(splineX2,linspace(0,1-1/numVertices,numVertices));
+newPoints(:,2) = ppval(splineY2,linspace(0,1-1/numVertices,numVertices));
+
 end
 
 function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes)
@@ -91,7 +101,7 @@ function result = calculateIntegral(r0,r0rotation,splineX,splineY,plotYes)
 
 fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes);
 
-result = integral(fun,0,1);
+result = integral(fun,1e-16,1-1e-16);
 
 try
     assert(~isnan(result),'Integral returned NaN');

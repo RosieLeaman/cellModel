@@ -284,6 +284,9 @@ fun = @(t)calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes);
 
 result = integral(fun,0,1);
 
+t = linspace(0,1,1000);
+calcIntegrandVectorised(t,r0,r0rotation,splineX,splineY,plotYes);
+
 try
     assert(~isnan(result),'Integral returned NaN');
 catch
