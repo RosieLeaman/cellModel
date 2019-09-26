@@ -188,7 +188,7 @@ plotEvery = settings.plotEvery;
 
 % accuracy of insertion calculations
 
-insertionAccuracy = 3;
+insertionAccuracy = 7;
 maxInsDistProtein = (insRateProtein*exp(insertionAccuracy))/(2*pi);
 maxInsDistLPS = (insRateProtein*exp(insertionAccuracy))/(2*pi);
 
@@ -240,6 +240,8 @@ prematureEnd = 0;
 cellLength = zeros(1,floor(maxTime/dt));
 numBAMs = zeros(1,floor(maxTime/dt));
 numLptDs = zeros(1,floor(maxTime/dt));
+proteinArea = zeros(1,floor(maxTime/dt));
+LPSArea = zeros(1,floor(maxTime/dt));
 
 while time < maxTime && prematureEnd == 0
     
@@ -248,6 +250,18 @@ while time < maxTime && prematureEnd == 0
     % calculate stuffs
     numBAMs(itCount) = size(BAMlocs,1);
     numLptDs(itCount) = size(LptDlocs,1);
+    
+    thisProteinArea = 0;
+    for i=1:numel(proteinVertices)
+        thisProteinArea = thisProteinArea + polyarea(proteinVertices{i}(:,1),proteinVertices{i}(:,2));
+    end
+    proteinArea(itCount) = thisProteinArea;
+    
+    thisLPSArea = 0;
+    for i=1:numel(lpsVertices)
+        thisLPSArea = thisLPSArea + polyarea(lpsVertices{i}(:,1),lpsVertices{i}(:,2));
+    end
+    LPSArea(itCount) = thisLPSArea;
     
     % calculate the mean left and right edge position
     
@@ -666,6 +680,9 @@ while time < maxTime && prematureEnd == 0
         model.cellLength = cellLength;
         model.numBAMs = numBAMs;
         model.numLptDs = numLptDs;
+        
+        model.proteinArea = proteinArea;
+        model.LPSArea = LPSArea;
 
         save([saveLocation,'results-it',num2str(itCount),'.mat'],'model')
         
