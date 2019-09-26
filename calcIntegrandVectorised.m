@@ -123,17 +123,14 @@ function integrandX = calcIntegrand(r0,rs,t)
 
 dr = rs - r0;
 
+%if sum(dr) > 0 % check for not the same point
+
 square = (dr(1).^2 + dr(2).^2);
 
 Jexpression = calcJexpression(dr(1),dr(2),t(1),t(2));
 
 integrandX = (dr(1)/(square.^2))*Jexpression;
-
-%integrandY = (dr(2)/(square.^2))*Jexpression;
-
-% if abs(square) <= 10e-16
-%     % we have somehow managed to pick the exact same point
-%     % return zero
+% else
 %     integrandX = 0;
 % end
 
