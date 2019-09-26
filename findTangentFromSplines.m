@@ -7,7 +7,6 @@ splineYdiff = fnder(splineY);
 xdiffs = ppval(splineXdiff,t);
 ydiffs = ppval(splineYdiff,t);
 
-
 % note that this requires that t is given as a ROW vector
 
 tangents = [xdiffs',ydiffs'];

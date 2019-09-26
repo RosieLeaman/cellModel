@@ -47,3 +47,4 @@ t = (t./distAround)-1;
 % get the x and y splines separately
 ppvalX = spline(t,x(:,1));
 ppvalY = spline(t,x(:,2));
+
